@@ -1,0 +1,13 @@
+# Netlify: build the Vite app and serve dist/. Every push to main redeploys.
+[build]
+  command = "npm ci && npm test && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app: send unknown paths to the app.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

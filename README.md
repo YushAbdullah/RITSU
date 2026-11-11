@@ -44,7 +44,7 @@ npm run build:single # one self-contained HTML file in dist-single/
 
 ## Publish
 
-`.github/workflows/pages.yml` tests, builds and deploys `dist/` to GitHub Pages on every push to `main`. Enable it once under the repo's Settings → Pages → Source: GitHub Actions. The build uses relative paths, so it also works from any static host (Netlify, Vercel, Cloudflare Pages) or as the single-file build.
+`.github/workflows/pages.yml` tests, builds and deploys `dist/` to GitHub Pages on every push to `main`. Enable it once under the repo's Settings → Pages → Source: GitHub Actions. `netlify.toml` lets Netlify build it with no extra settings (import the repo at app.netlify.com, then rename the site to get a `<name>.netlify.app` link). The build uses relative paths, so it also works from any static host (Netlify, Vercel, Cloudflare Pages) or as the single-file build.
 
 ## Code map
 
