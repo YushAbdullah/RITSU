@@ -108,11 +108,20 @@ export function AccountCard() {
   const where = session.storage === 'cloud' ? 'Saved to the cloud. Sign in on any device to see it.'
     : session.storage === 'device' ? 'Saved privately in this browser on this device. Nothing is sent to a server. Download a backup now and then so you never lose your family\'s history, or to move it to another device.'
     : 'Demo family. Changes stay in this browser and are not part of any account.';
-  const download = () => {
-    const blob = new Blob([JSON.stringify({ ritsu: 1, exportedAt: new Date().toISOString(), state }, null, 2)], { type: 'application/json' });
+  const download = async () => {
+    const text = JSON.stringify({ ritsu: 1, exportedAt: new Date().toISOString(), state }, null, 2);
+    const filename = `ritsu-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    // Inside a hosted viewer that blocks plain downloads, ask the host to save the file.
+    const host = (window as unknown as { claude?: { use?: (n: string) => Promise<{ save: (f: { filename: string; data: string }) => Promise<unknown> } | null> } }).claude;
+    const saver = host?.use ? await host.use('downloads').catch(() => null) : null;
+    if (saver) {
+      try { await saver.save({ filename, data: text }); toast('Backup saved'); }
+      catch (e) { if ((e as { code?: string }).code !== 'declined') toast('Could not save the backup here.'); }
+      return;
+    }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `ritsu-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast('Backup downloaded');
@@ -130,7 +139,7 @@ export function AccountCard() {
         <button className="btn btn-ghost btn-sm" onClick={session.signOut}>{session.source === 'demo' ? 'Leave demo' : 'Sign out'}</button>
         {session.source === 'demo' && <ResetDemo />}
         {session.source === 'account' && <>
-          <button className="btn btn-ghost btn-sm" onClick={download}>Download backup</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => void download()}>Download backup</button>
           <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
             Restore backup
             <input type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
