@@ -2,7 +2,18 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Action } from '../lib/store';
 import type { Account, Member, State } from '../lib/types';
 
+export type SaveStatus = 'saved' | 'saving' | 'error';
+export interface Session {
+  source: 'demo' | 'account';
+  email?: string;
+  storage: 'demo' | 'cloud' | 'device';
+  saveState: SaveStatus;
+  signOut: () => void;
+  deleteAccount?: () => Promise<void>;
+}
+
 export interface Ctx {
+  session: Session;
   state: State;
   me: Member;
   account: Account;

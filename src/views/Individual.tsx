@@ -7,7 +7,7 @@ import { uid } from '../lib/store';
 import type { MoneyKind } from '../lib/types';
 import { AmountBars, CategoryBars, DivergingBars, LineChart } from '../components/charts';
 import { ago, Empty, money, PageHead, Progress, Ring, Seg, Sheet, signed, Stat, useApp } from '../components/ui';
-import { ResetDemo, RuleEditor, TxList } from './shared';
+import { AccountCard, RuleEditor, TxList } from './shared';
 import { AuditCard } from './Guardian';
 
 const useHabits = () => {
@@ -45,7 +45,7 @@ export function IndToday() {
       <PageHead kicker={new Date().toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long' })} title={`${greeting()}, ${me.name}`} lead={`Level ${lv.number} ${lv.name} · 🔥 ${st}-day streak`} />
       <div className="grid g4">
         <Stat label="Habit score" value={`${score}`} sub="Share of good habits this month" />
-        <Stat label="Reward fund" value={money(reward.total, account.currency)} sub={`Earned guilt-free spending, cap ${money(account.allowance.cap, account.currency)}`} />
+        <Stat label="Reward fund" value={money(reward.total, account.currency)} sub={`Play-money reward value, cap ${money(account.allowance.cap, account.currency)}`} />
         <Stat label="Spent" value={money(f.expense, account.currency)} sub={budget ? `${Math.round((f.expense / budget) * 100)}% of ${money(budget, account.currency)} budget` : 'No budget set'} />
         <Stat label="Discipline" value={`${disc}/100`} sub="Budget, savings and needs mix" />
       </div>
@@ -314,7 +314,7 @@ export function IndSettings() {
       <div className="card">
         <div className="grid g2">
           <div className="field"><label htmlFor="c">Currency</label><input id="c" className="input" value={a.currency} onChange={(e) => setA({ ...a, currency: e.target.value })} /></div>
-          <div className="field"><label htmlFor="r">Value of 1 point</label><input id="r" className="input" type="number" step="0.05" min={0.05} value={a.rate} onChange={(e) => setA({ ...a, rate: num(e.target.value) })} /></div>
+          <div className="field"><label htmlFor="r">Value of 1 point (play money)</label><input id="r" className="input" type="number" step="0.05" min={0.05} value={a.rate} onChange={(e) => setA({ ...a, rate: num(e.target.value) })} /></div>
           <div className="field"><label htmlFor="b">Monthly spending budget</label><input id="b" className="input" type="number" min={0} value={budget} onChange={(e) => setBudget(num(e.target.value))} /></div>
           <div className="field"><label htmlFor="cap">Reward fund cap</label><input id="cap" className="input" type="number" min={0} value={a.allowance.cap} onChange={(e) => setA({ ...a, allowance: { ...a.allowance, cap: num(e.target.value) } })} /></div>
           <div className="field"><label htmlFor="bp">Bonus %</label><input id="bp" className="input" type="number" min={0} value={a.allowance.bonusPct} onChange={(e) => setA({ ...a, allowance: { ...a.allowance, bonusPct: num(e.target.value) } })} /></div>
@@ -326,10 +326,7 @@ export function IndSettings() {
         }}>Save settings</button>
       </div>
       <AuditCard />
-      <div className="card" style={{ marginTop: 12 }}>
-        <h3>Demo data</h3>
-        <ResetDemo />
-      </div>
+      <AccountCard />
     </>
   );
 }

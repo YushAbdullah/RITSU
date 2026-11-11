@@ -27,6 +27,18 @@ npm run build        # static build in dist/
 npm run build:single # one self-contained HTML file in dist-single/
 ```
 
+## Accounts, saving and privacy
+
+- **Play money only.** Points convert to a reward value shown in a currency label (RM by default). Ritsu never holds, sends or receives real money.
+- **Parent accounts.** Sign up with name, email and password, then set up the family (children, optional 4-digit PINs per profile for shared devices).
+- **Private by default.** With no configuration, accounts and data live in the browser's local storage on that device. Passwords and PINs are hashed with PBKDF2-SHA256 (120k iterations). Nothing is sent to any server.
+- **Backups.** Settings → Your account has *Download backup* (JSON) and *Restore backup*, so a family can keep a copy or move to another device. *Delete account* erases the account and its data from the device.
+- **Optional cloud sync.** Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (see `.env.example`) and run `supabase/schema.sql` to switch to Supabase accounts with email password reset and cross-device sync. Not needed for normal use.
+
+## Publish
+
+`.github/workflows/pages.yml` tests, builds and deploys `dist/` to GitHub Pages on every push to `main`. Enable it once under the repo's Settings → Pages → Source: GitHub Actions. The build uses relative paths, so it also works from any static host (Netlify, Vercel, Cloudflare Pages) or as the single-file build.
+
 ## Code map
 
 | Path | What |
@@ -35,6 +47,9 @@ npm run build:single # one self-contained HTML file in dist-single/
 | `src/lib/logic.ts` | Pure engine: summaries, allowance formula, streaks, levels, badges, challenges, analytics series, finance and discipline score |
 | `src/lib/store.ts` | Every state change as a pure, validated, audit-logged action (role checks live here) |
 | `src/lib/seed.ts` | Six weeks of deterministic demo data |
+| `src/lib/backend.ts` | Accounts and saving: on-device backend (default) and optional Supabase backend, backup parsing |
+| `src/lib/setup.ts` | Starting state for a newly registered family or individual |
+| `src/views/Auth.tsx` | Welcome, sign up / sign in, family setup, profile picker and PIN keypad |
 | `src/views/` | Guardian, Child and Individual screens |
 | `src/components/` | UI kit and hand-rolled SVG charts |
 | `docs/PRODUCT_PLAN.md` | Roles, IA, ERD, architecture, points and allowance logic, roadmap, acceptance criteria |

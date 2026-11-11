@@ -7,7 +7,8 @@ import { uid } from '../lib/store';
 import type { DisputeStatus, Member, Role, RuleKind, Transaction } from '../lib/types';
 import { CategoryBars, DivergingBars, LineChart, Sparkline } from '../components/charts';
 import { ago, Empty, money, PageHead, Seg, Sheet, signed, Stat, useApp } from '../components/ui';
-import { ResetDemo, RuleEditor, TxList } from './shared';
+import { AccountCard, PinEditor, RuleEditor, TxList } from './shared';
+import { PlayMoneyNote } from './Auth';
 
 const useFamily = () => {
   const { state, account } = useApp();
@@ -284,8 +285,9 @@ export function AllowanceView() {
   const months = [cur, prevCycle(cur), prevCycle(prevCycle(cur))];
   return (
     <>
-      <PageHead kicker="Monthly cycle" title="Allowance" lead={`1 point = ${money(account.rate, account.currency)}. Review the proposal, adjust if needed, approve.`}
+      <PageHead kicker="Monthly cycle" title="Allowance" lead={`1 point = ${money(account.rate, account.currency)} in play money. Review the proposal, adjust if needed, approve.`}
         right={<select className="input" style={{ width: 'auto' }} value={cycle} onChange={(e) => setCycle(e.target.value)} aria-label="Month">{months.map((m) => <option key={m} value={m}>{cycleLabel(m)}</option>)}</select>} />
+      <PlayMoneyNote />
       <div className="grid md2">
         {children.map((c) => <AllowanceCard key={`${c.id}-${cycle}`} child={c} cycle={cycle} />)}
       </div>
@@ -416,6 +418,7 @@ export function SettingsView() {
   const [a, setA] = useState(account);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [adding, setAdding] = useState(false);
+  const [pinFor, setPinFor] = useState<Member | null>(null);
   const rules = state.rules.filter((r) => r.accountId === account.id);
   const members = state.members.filter((m) => m.accountId === account.id);
   const isOwner = me.role === 'guardian';
@@ -429,7 +432,7 @@ export function SettingsView() {
           <h3>Points and money</h3>
           <div className="grid g2">
             <div className="field"><label htmlFor="cur">Currency</label><input id="cur" className="input" value={a.currency} disabled={!isOwner} onChange={(e) => setA({ ...a, currency: e.target.value })} /></div>
-            <div className="field"><label htmlFor="rate">Value of 1 point</label><input id="rate" className="input" type="number" step="0.05" min={0.05} value={a.rate} disabled={!isOwner} onChange={(e) => setA({ ...a, rate: num(e.target.value) })} /></div>
+            <div className="field"><label htmlFor="rate">Value of 1 point (play money)</label><input id="rate" className="input" type="number" step="0.05" min={0.05} value={a.rate} disabled={!isOwner} onChange={(e) => setA({ ...a, rate: num(e.target.value) })} /></div>
             <div className="field"><label htmlFor="base">Base allowance</label><input id="base" className="input" type="number" min={0} value={a.allowance.base} disabled={!isOwner} onChange={(e) => setA({ ...a, allowance: { ...a.allowance, base: num(e.target.value) } })} /></div>
             <div className="field"><label htmlFor="bonus">Bonus %</label><input id="bonus" className="input" type="number" min={0} max={100} value={a.allowance.bonusPct} disabled={!isOwner} onChange={(e) => setA({ ...a, allowance: { ...a.allowance, bonusPct: num(e.target.value) } })} /></div>
             <div className="field"><label htmlFor="share">Bonus needs merit share %</label><input id="share" className="input" type="number" min={0} max={100} value={Math.round(a.allowance.bonusMeritShare * 100)} disabled={!isOwner} onChange={(e) => setA({ ...a, allowance: { ...a.allowance, bonusMeritShare: num(e.target.value) / 100 } })} /></div>
@@ -444,7 +447,7 @@ export function SettingsView() {
         <div className="card">
           <div className="card-head"><h3>Family members</h3>{isOwner && <button className="btn btn-ghost btn-sm" onClick={() => setAdding(true)}>＋ Add</button>}</div>
           <ul className="list">
-            {members.map((m) => <li className="item" key={m.id}><div className="ic">{m.avatar}</div><div className="body"><div className="t">{m.name}</div><div className="s">{roleName(m.role)}{m.age ? ` · age ${m.age}` : ''}</div></div></li>)}
+            {members.map((m) => <li className="item" key={m.id}><div className="ic">{m.avatar}</div><div className="body"><div className="t">{m.name}</div><div className="s">{roleName(m.role)}{m.age ? ` · age ${m.age}` : ''}{m.pinHash ? ' · 🔒 PIN set' : ''}</div></div>{isOwner && <button className="btn btn-ghost btn-sm" onClick={() => setPinFor(m)}>{m.pinHash ? 'Change PIN' : 'Set PIN'}</button>}</li>)}
           </ul>
         </div>
       </div>
@@ -463,13 +466,10 @@ export function SettingsView() {
         </ul>
       </div>
       <AuditCard />
-      <div className="card" style={{ marginTop: 12 }}>
-        <h3>Demo data</h3>
-        <p className="small muted">This MVP stores data in your browser. Reset to bring back the sample family.</p>
-        <ResetDemo />
-      </div>
+      <AccountCard />
       {editing && <RuleEditor accountId={account.id} initial={editing === 'new' ? undefined : rules.find((r) => r.id === editing)} onDone={() => setEditing(null)} />}
       {adding && <AddMemberSheet onClose={() => setAdding(false)} />}
+      {pinFor && <PinEditor member={pinFor} onClose={() => setPinFor(null)} />}
     </>
   );
 }

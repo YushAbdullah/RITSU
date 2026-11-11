@@ -89,7 +89,7 @@ export function ChildPoints() {
         <div className="grid md2">
           <div className="card"><h3>⭐ Ways to earn points</h3><ul className="list">{rules.filter((r) => r.kind === 'merit').map((r) => <li className="item" key={r.id}><div className="ic">{r.icon}</div><div className="body"><div className="t">{r.name}</div></div><div className="pts pos">+{r.points}</div></li>)}</ul></div>
           <div className="card"><h3>⚠️ Things that cost points</h3><ul className="list">{rules.filter((r) => r.kind === 'demerit').map((r) => <li className="item" key={r.id}><div className="ic">{r.icon}</div><div className="body"><div className="t">{r.name}</div></div><div className="pts neg">−{r.points}</div></li>)}</ul></div>
-          <div className="card" style={{ background: 'var(--sky)', borderColor: 'transparent' }}><b>How points become money</b><p style={{ margin: '6px 0 0' }}>Each point is worth {money(account.rate, account.currency)}. At the end of the month your grown-up checks your points and approves your allowance. {Math.round(account.allowance.savingsPct * 100)}% goes into your savings jar.</p></div>
+          <div className="card" style={{ background: 'var(--sky)', borderColor: 'transparent' }}><b>How points become money</b><p style={{ margin: '6px 0 0' }}>Each point is worth {money(account.rate, account.currency)} in Ritsu play money. It's a game, not real money. At the end of the month your grown-up checks your points and approves your allowance. {Math.round(account.allowance.savingsPct * 100)}% goes into your savings jar.</p></div>
         </div>
       )}
       {asking && <DisputeSheet tx={asking} onClose={() => setAsking(null)} />}
@@ -166,6 +166,7 @@ export function ChildMoney() {
         <div className="num" style={{ fontSize: 48, fontWeight: 700 }}>{money(p.total, cur)}</div>
         <div className="small">{p.netPoints} points × {money(p.rate, cur)} + {money(p.base, cur)} base{p.bonus ? ` + ${money(p.bonus, cur)} bonus 🎉` : ''}{p.clampedBy === 'cap' ? ` (max ${money(p.cap, cur)})` : ''}</div>
         <div className="small" style={{ marginTop: 6 }}>🐷 {money(p.savings, cur)} will go to savings · 🛍️ {money(p.spendable, cur)} to spend</div>
+        <div className="small" style={{ marginTop: 6, opacity: 0.8 }}>🎲 This is Ritsu play money, a game to help you practise saving.</div>
       </div>
       <h2 className="sec">Savings jars</h2>
       <div className="grid md2">

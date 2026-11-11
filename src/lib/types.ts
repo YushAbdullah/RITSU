@@ -41,6 +41,9 @@ export interface Member {
   age?: number;
   /** Monthly spending budget for individuals (currency units). */
   monthlyBudget?: number;
+  /** Optional 4-digit PIN (PBKDF2 hash) asked before opening this profile on a shared device. */
+  pinHash?: string;
+  pinSalt?: string;
 }
 
 export type RuleKind = 'merit' | 'demerit';

@@ -40,7 +40,7 @@ const members: Member[] = [
 const r = (id: string, accountId: string, name: string, kind: Rule['kind'], points: number, category: string, icon: string, memberId?: string, recurring: Rule['recurring'] = null): Rule =>
   ({ id, accountId, name, kind, points, category, icon, memberId, recurring, active: true });
 
-const rules: Rule[] = [
+export const DEMO_RULES: Rule[] = [
   r('r_bed', FAMILY, 'Made the bed', 'merit', 1, 'Chores', '🛏️', undefined, 'daily'),
   r('r_dishes', FAMILY, 'Helped with the dishes', 'merit', 2, 'Chores', '🍽️'),
   r('r_tidy', FAMILY, 'Tidied own room', 'merit', 2, 'Chores', '🧹', undefined, 'weekly'),
@@ -76,7 +76,7 @@ export function seed(now = new Date()): State {
   today.setHours(0, 0, 0, 0);
 
   const add = (memberId: string, accountId: string, ruleId: string, actorId: string, day: Date, hour: number, note?: string) => {
-    const rule = rules.find((x) => x.id === ruleId)!;
+    const rule = DEMO_RULES.find((x) => x.id === ruleId)!;
     const at = new Date(day.getTime() + hour * 3_600_000 + Math.floor(rand() * 50) * 60_000);
     if (at > now) return null;
     const tx: Transaction = {
@@ -170,7 +170,7 @@ export function seed(now = new Date()): State {
   m('m_sara', 'expense', 18, 'Food', 'Bubble tea with friends', iso(3), false);
 
   const state: State = {
-    version: 1, accounts, members, rules, transactions: txs,
+    version: 1, accounts, members, rules: DEMO_RULES, transactions: txs,
     disputes: [{
       id: 'dp_seed_1', txId: disputed.id, memberId: 'm_danish', reason: 'It was not only me',
       note: 'Adik took the remote first and I asked nicely two times.', status: 'open',

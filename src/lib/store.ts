@@ -22,13 +22,14 @@ export type Action =
   | { type: 'updateAccount'; accountId: string; actorId: string; patch: Partial<Account> }
   | { type: 'saveRule'; actorId: string; rule: Rule }
   | { type: 'addMember'; actorId: string; member: Member }
-  | { type: 'updateMember'; actorId: string; memberId: string; patch: Partial<Pick<Member, 'name' | 'avatar' | 'age' | 'monthlyBudget'>> }
+  | { type: 'updateMember'; actorId: string; memberId: string; patch: Partial<Pick<Member, 'name' | 'avatar' | 'age' | 'monthlyBudget' | 'pinHash' | 'pinSalt'>> }
   | { type: 'saveGoal'; actorId: string; goal: SavingsGoal }
   | { type: 'contribute'; actorId: string; goalId: string; amount: number }
   | { type: 'addMoney'; actorId: string; entry: MoneyEntry }
   | { type: 'addAssessment'; actorId: string; assessment: Assessment }
   | { type: 'readAll'; memberId: string }
-  | { type: 'reset' };
+  | { type: 'reset' }
+  | { type: 'replace'; state: State };
 
 export class ActionError extends Error {}
 
@@ -230,36 +231,30 @@ export function reduce(s: State, a: Action): State {
       return { ...s, notifications: s.notifications.map((x) => (x.memberId === a.memberId ? { ...x, read: true } : x)) };
     case 'reset':
       return seed();
+    case 'replace':
+      return a.state;
   }
 }
 
-const KEY = 'ritsu:v1';
-
-function load(): State {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as State;
-      if (parsed.version === 1) return parsed;
-    }
-  } catch { /* storage unavailable: fall back to demo data */ }
-  return seed();
-}
-
-export function useStore() {
-  const [state, setState] = useState<State>(load);
+/**
+ * Holds the state for one signed-in account (or the demo). Every successful
+ * action calls onChange, which the app uses to save.
+ */
+export function useStore(initial: State, onChange: (s: State) => void) {
+  const [state, setState] = useState<State>(initial);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef(state);
   ref.current = state;
-  useEffect(() => {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ }
-  }, [state]);
+  const changeRef = useRef(onChange);
+  changeRef.current = onChange;
+  useEffect(() => { ref.current = initial; setState(initial); }, [initial]);
   const dispatch = useCallback((a: Action): boolean => {
     try {
       const next = reduce(ref.current, a);
       ref.current = next;
       setState(next);
       setError(null);
+      changeRef.current(next);
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

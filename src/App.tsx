@@ -1,8 +1,11 @@
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from './lib/store';
-import type { Member, Role } from './lib/types';
-import { AppCtx, useToast, type Ctx } from './components/ui';
+import type { Role, State } from './lib/types';
+import { backend, demoStore, type User } from './lib/backend';
+import { seed } from './lib/seed';
+import { ProfilePicker, Setup, Welcome } from './views/Auth';
+import { AppCtx, useToast, type Ctx, type SaveStatus, type Session } from './components/ui';
 import { ActivityView, AllowanceView, AwardView, GuardianHome, ReportsView, roleName, SettingsView } from './views/Guardian';
 import { ChildBadges, ChildHome, ChildMoney, ChildPoints } from './views/Child';
 import { IndHabits, IndInsights, IndMoney, IndReview, IndSettings, IndToday } from './views/Individual';
@@ -42,20 +45,85 @@ const NAV: Record<Role, Tab[]> = {
   ],
 };
 
-const SESSION = 'ritsu:session';
 // Routing lives in component state (no URL hash), so the app also works
 // inside embedded viewers that restrict hash formats.
 type Route = { tab: string; param?: string };
 
+type Phase =
+  | { kind: 'loading' }
+  | { kind: 'welcome' }
+  | { kind: 'setup'; user: User }
+  | { kind: 'ready'; source: 'demo' | 'account'; user?: User; state: State };
+
 export default function App() {
-  const { state, dispatch, error, setError } = useStore();
-  const [memberId, setMemberId] = useState<string | null>(() => { try { return localStorage.getItem(SESSION); } catch { return null; } });
-  const [route, setRoute] = useState<Route>({ tab: 'home' });
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const { msg, show } = useToast();
 
-  useEffect(() => { try { memberId ? localStorage.setItem(SESSION, memberId) : localStorage.removeItem(SESSION); } catch { /* ignore */ } }, [memberId]);
-  useEffect(() => { if (error) { show(error); setError(null); } }, [error, show, setError]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = await backend().current();
+        if (!u) return setPhase({ kind: 'welcome' });
+        const st = await backend().load(u);
+        setPhase(st ? { kind: 'ready', source: 'account', user: u, state: st } : { kind: 'setup', user: u });
+      } catch (e) {
+        show((e as Error).message);
+        setPhase({ kind: 'welcome' });
+      }
+    })();
+  }, [show]);
+
+  const onAuthed = async (u: User) => {
+    try {
+      const st = await backend().load(u);
+      setPhase(st ? { kind: 'ready', source: 'account', user: u, state: st } : { kind: 'setup', user: u });
+    } catch (e) { show((e as Error).message); }
+  };
+  const signOut = async () => { await backend().signOut().catch(() => undefined); setPhase({ kind: 'welcome' }); };
+
+  const toast = msg && <div className="toast" role="status">{msg}</div>;
+  if (phase.kind === 'loading') return <div className="app theme-pro"><div className="login"><p className="muted">Loading…</p></div></div>;
+  if (phase.kind === 'welcome') return <div className="app theme-pro"><Welcome onAuthed={onAuthed} onDemo={() => setPhase({ kind: 'ready', source: 'demo', state: demoStore.load() ?? seed() })} />{toast}</div>;
+  if (phase.kind === 'setup') {
+    return <div className="app theme-pro"><Setup user={phase.user} onCancel={signOut} onDone={async (st) => {
+      try { await backend().save(phase.user, st); setPhase({ kind: 'ready', source: 'account', user: phase.user, state: st }); show('All set! Your family is saved.'); }
+      catch (e) { show((e as Error).message); }
+    }} />{toast}</div>;
+  }
+  return <Workspace key={phase.user?.id ?? 'demo'} source={phase.source} user={phase.user} initial={phase.state}
+    onExit={phase.source === 'demo' ? () => setPhase({ kind: 'welcome' }) : signOut} toast={show} toastEl={toast} />;
+}
+
+function Workspace({ source, user, initial, onExit, toast, toastEl }: { source: 'demo' | 'account'; user?: User; initial: State; onExit: () => void; toast: (m: string) => void; toastEl: React.ReactNode }) {
+  const [saveState, setSaveState] = useState<SaveStatus>('saved');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pending = useRef<State | null>(null);
+  const flush = useCallback(async () => {
+    const st = pending.current;
+    if (!st || !user) return;
+    pending.current = null;
+    try { await backend().save(user, st); setSaveState(pending.current ? 'saving' : 'saved'); }
+    catch (e) { setSaveState('error'); toast((e as Error).message); pending.current = pending.current ?? st; }
+  }, [user, toast]);
+  const onChange = useCallback((st: State) => {
+    if (source === 'demo') { demoStore.save(st); return; }
+    pending.current = st;
+    setSaveState('saving');
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 600);
+  }, [source, flush]);
+  useEffect(() => {
+    const before = () => { if (pending.current) void flush(); };
+    window.addEventListener('pagehide', before);
+    return () => window.removeEventListener('pagehide', before);
+  }, [flush]);
+
+  const { state, dispatch, error, setError } = useStore(initial, onChange);
+  const single = state.members.length === 1 ? state.members[0].id : null;
+  const [memberId, setMemberId] = useState<string | null>(single);
+  const [route, setRoute] = useState<Route>({ tab: 'home' });
+  const [notifOpen, setNotifOpen] = useState(false);
+  useEffect(() => { if (error) { toast(error); setError(null); } }, [error, toast, setError]);
 
   const me = state.members.find((m) => m.id === memberId);
   const account = me && state.accounts.find((a) => a.id === me.accountId);
@@ -63,11 +131,22 @@ export default function App() {
     setRoute({ tab, param });
     window.scrollTo({ top: 0 });
   }, []);
+  const session: Session = useMemo(() => ({
+    source, email: user?.email, storage: source === 'demo' ? 'demo' : backend().kind, saveState, signOut: onExit,
+    deleteAccount: user ? async () => { if (timer.current) clearTimeout(timer.current); pending.current = null; await backend().deleteAccount(user); onExit(); } : undefined,
+  }), [source, user, saveState, onExit]);
 
-  const ctx: Ctx | null = useMemo(() => (me && account ? { state, me, account, dispatch, toast: show, go, param: route.param } : null), [state, me, account, dispatch, show, go, route.param]);
+  const ctx: Ctx | null = useMemo(() => (me && account ? { state, me, account, dispatch, toast, go, param: route.param, session } : null), [state, me, account, dispatch, toast, go, route.param, session]);
 
   if (!me || !account || !ctx) {
-    return <div className="app theme-pro"><Login members={state.members} onPick={(m) => { setMemberId(m.id); go('home'); }} />{msg && <div className="toast" role="status">{msg}</div>}</div>;
+    return (
+      <div className="app theme-pro">
+        <ProfilePicker state={state} title={source === 'demo' ? 'Demo family: who is using Ritsu?' : 'Who is using Ritsu?'}
+          exitLabel={source === 'demo' ? '← Leave demo' : 'Sign out'} onExit={onExit}
+          onPick={(m) => { setMemberId(m.id); go('home'); }} />
+        {toastEl}
+      </div>
+    );
   }
 
   const tabs = NAV[me.role];
@@ -75,6 +154,7 @@ export default function App() {
   const View = tab.view;
   const unread = state.notifications.filter((n) => n.memberId === me.id && !n.read).length;
   const kid = me.role === 'child';
+  const saveLabel = source === 'demo' ? 'Demo' : saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Not saved' : backend().kind === 'cloud' ? 'Saved ☁️' : 'Saved';
 
   const nav = (cls: string) => (
     <nav className={cls} aria-label="Main">
@@ -90,12 +170,13 @@ export default function App() {
     <AppCtx.Provider value={ctx}>
       <div className={`app ${kid ? 'theme-kid' : 'theme-pro'}`}>
         <header className="topbar">
-          <div className="brand"><span className="brand-mark">R</span><span>Ritsu</span></div>
+          <div className="brand"><svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><rect x="16" y="14" width="20" height="72" rx="10" fill="currentColor" /><path d="M44 60 L72 86" stroke="currentColor" strokeWidth="20" strokeLinecap="round" /><circle cx="54" cy="37" r="23" fill="#6BE683" /></svg><span>Ritsu</span></div>
+          {!kid && <span className={`chip ${saveState === 'error' ? 'bad' : ''}`} aria-live="polite">{saveLabel}</span>}
           <div className="spacer" />
           <button className="icon-btn" onClick={() => setNotifOpen(true)} aria-label={`Notifications, ${unread} unread`}>🔔{unread > 0 && <span className="dot">{unread}</span>}</button>
-          <button className="who" onClick={() => { setMemberId(null); setRoute({ tab: 'home' }); }} title="Switch profile">
+          <button className="who" onClick={() => { if (state.members.length > 1) { setMemberId(null); setRoute({ tab: 'home' }); } else go('settings'); }} title="Switch profile">
             <span className="av">{me.avatar}</span>
-            <span style={{ textAlign: 'left' }}><b>{me.name}</b><small>{roleName(me.role)} · switch</small></span>
+            <span style={{ textAlign: 'left' }}><b>{me.name}</b><small>{state.members.length > 1 ? 'switch' : roleName(me.role)}</small></span>
           </button>
         </header>
         <div className="layout">
@@ -104,41 +185,8 @@ export default function App() {
         </div>
         {nav('bottomnav')}
         {notifOpen && <NotificationsSheet onClose={() => setNotifOpen(false)} />}
-        {msg && <div className="toast" role="status">{msg}</div>}
+        {toastEl}
       </div>
     </AppCtx.Provider>
-  );
-}
-
-function Login({ members, onPick }: { members: Member[]; onPick: (m: Member) => void }) {
-  const family = members.filter((m) => m.role !== 'individual');
-  const solo = members.filter((m) => m.role === 'individual');
-  const describe: Record<Role, string> = {
-    guardian: 'Run the family: rules, points, allowance, reports.',
-    coguardian: 'Award points; big deductions need approval.',
-    child: 'See your points, badges and savings.',
-    individual: 'Personal habits, money and monthly review.',
-  };
-  const card = (m: Member) => (
-    <button key={m.id} className="profile" onClick={() => onPick(m)}>
-      <span className="av" aria-hidden="true">{m.avatar}</span>
-      <b>{m.name}</b>
-      <span className="chip" style={{ alignSelf: 'flex-start' }}>{roleName(m.role)}{m.age ? ` · ${m.age}` : ''}</span>
-      <span className="small muted">{describe[m.role]}</span>
-    </button>
-  );
-  return (
-    <div className="login">
-      <div className="login-hero">
-        <p className="kicker">Merit &amp; reward platform</p>
-        <h1>EVERY ACTION HAS VALUE</h1>
-        <p style={{ margin: 0, fontWeight: 500 }}>Ritsu turns good habits into points and points into an allowance or a personal reward budget, with a clear record of why every point moved.</p>
-      </div>
-      <h2 className="sec">Family mode · Rahman Family</h2>
-      <div className="profiles">{family.map(card)}</div>
-      <h2 className="sec">Individual mode</h2>
-      <div className="profiles">{solo.map(card)}</div>
-      <p className="small muted" style={{ marginTop: 24 }}>Demo: choose any profile to see its dashboard. Data is saved in this browser only. The production version uses email sign-in for adults and a family code or PIN for children.</p>
-    </div>
   );
 }
