@@ -5,6 +5,7 @@ import { isReversed } from '../lib/logic';
 import type { Rule, RuleKind, Transaction } from '../lib/types';
 import { ago, Empty, Seg, Sheet, signed, useApp } from '../components/ui';
 import { ProofView } from '../components/evidence';
+import { InfoLinks } from './Info';
 
 export function TxItem({ tx, showWho, actions }: { tx: Transaction; showWho?: boolean; actions?: React.ReactNode }) {
   const { state } = useApp();
@@ -158,6 +159,7 @@ export function AccountCard() {
           </div>
         </div>
       )}
+      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 8 }}><InfoLinks /></div>
       {session.source === 'account' && session.deleteAccount && (
         <div style={{ marginTop: 12 }}>
           {!confirmDelete ? <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmDelete(true)}>Delete account</button> : (

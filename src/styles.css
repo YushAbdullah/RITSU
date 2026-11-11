@@ -318,6 +318,25 @@ table.tbl td.r, table.tbl th.r { text-align: right; }
 .bubble .reply { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); color: var(--muted); }
 .react-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; max-width: 360px; }
 .react-row .btn { padding: 0 8px; }
+.info-links { display: flex; flex-wrap: wrap; gap: 4px 2px; margin-top: 16px; }
+.info-links button { border: 0; background: none; color: var(--muted); font-size: 14px; padding: 8px 10px; min-height: 36px; border-radius: 8px; }
+.info-links button:hover { color: var(--text); background: var(--bg-2); }
+.info-page { position: fixed; inset: 0; z-index: 70; overflow-y: auto; padding-bottom: 48px; }
+.info-top { position: sticky; top: 0; z-index: 2; padding: 12px 16px; background: color-mix(in srgb, var(--card) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+.info-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px; max-width: 760px; margin: 0 auto; }
+.info-tabs button { flex: 0 0 auto; border: 1px solid var(--border); background: var(--card); color: var(--muted); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 500; }
+.info-tabs button[aria-selected='true'] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.info-body { max-width: 760px; margin: 0 auto; padding: 8px 16px; line-height: 1.6; font-size: 16px; }
+.info-body ul { padding-left: 20px; } .info-body li { margin: 6px 0; }
+.info-body a, .linkish { color: var(--brand-text); text-decoration: underline; }
+.linkish { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+.info-h { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 28px 0 8px; }
+.guide-step { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--grid); }
+.guide-step .n { flex: 0 0 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; font-weight: 600; }
+.person { display: flex; flex-direction: column; gap: 8px; }
+.person .av { width: 56px; height: 56px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; font-size: 24px; font-weight: 600; }
+.person .av.alt { background: var(--primary); color: var(--on-primary); }
+.person p { margin: 0; }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin: 4px 0 0; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--accent); }
 
