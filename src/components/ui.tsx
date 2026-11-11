@@ -65,7 +65,7 @@ export function Progress({ value, label }: { value: number; label?: string }) {
   );
 }
 
-export function Ring({ value, size = 120, stroke = 12, color = 'var(--primary)', children }: { value: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
+export function Ring({ value, size = 120, stroke = 12, color = 'var(--chart)', children }: { value: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const v = Math.max(0, Math.min(1, value));

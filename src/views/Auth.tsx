@@ -19,8 +19,8 @@ export function PlayMoneyNote({ compact }: { compact?: boolean }) {
 function Logo() {
   return (
     <svg viewBox="0 0 100 100" width="44" height="44" aria-hidden="true">
-      <rect x="16" y="14" width="20" height="72" rx="10" fill="#262828" />
-      <path d="M44 60 L72 86" stroke="#262828" strokeWidth="20" strokeLinecap="round" />
+      <rect x="16" y="14" width="20" height="72" rx="10" fill="currentColor" />
+      <path d="M44 60 L72 86" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
       <circle cx="54" cy="37" r="23" fill="#6BE683" />
     </svg>
   );
@@ -50,9 +50,9 @@ export function Welcome({ onAuthed, onDemo }: { onAuthed: (u: User) => void; onD
   return (
     <div className="login">
       <div className="login-hero">
-        <div className="row"><Logo /><p className="kicker" style={{ margin: 0 }}>Ritsu · merit &amp; rewards</p></div>
-        <h1>EVERY ACTION HAS VALUE</h1>
-        <p style={{ margin: 0, fontWeight: 500 }}>Turn good habits into points and points into a fun reward value, with a clear record of why every point moved.</p>
+        <div className="row" style={{ gap: 6 }}><Logo /><span className="wordmark">ritsu</span></div>
+        <h1>Every good action <span className="hl">counts<svg viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true"><path d="M3 14 C 40 4, 80 4, 110 11 S 170 18, 197 6" /></svg></span>.</h1>
+        <p className="lead" style={{ margin: 0 }}>Turn good habits into points and points into a fun reward value, with a clear record of why every point moved.</p>
       </div>
       <div className="card" style={{ maxWidth: 480, margin: '0 auto' }}>
         <div style={{ marginBottom: 16 }}>

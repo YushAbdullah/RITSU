@@ -35,7 +35,7 @@ export function GuardianHome() {
         right={<button className="btn btn-primary" onClick={() => go('award')}>＋ Award or deduct</button>} />
 
       {(pending.length > 0 || disputes.length > 0) && (
-        <div className="card" style={{ borderLeft: '4px solid var(--primary)', marginBottom: 12 }}>
+        <div className="card" style={{ boxShadow: 'inset 4px 0 0 var(--primary), var(--e2)', marginBottom: 12 }}>
           <div className="card-head"><h3>Needs you</h3><span className="chip warn">{pending.length + disputes.length} waiting</span></div>
           <ul className="list">
             {pending.map((t) => {
