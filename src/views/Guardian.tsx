@@ -7,7 +7,7 @@ import { uid } from '../lib/store';
 import type { DisputeStatus, Member, Role, RuleKind, Transaction } from '../lib/types';
 import { CategoryBars, DivergingBars, LineChart, Sparkline } from '../components/charts';
 import { ago, Empty, money, PageHead, Seg, Sheet, signed, Stat, useApp } from '../components/ui';
-import { RuleEditor, TxList } from './shared';
+import { ResetDemo, RuleEditor, TxList } from './shared';
 
 const useFamily = () => {
   const { state, account } = useApp();
@@ -466,7 +466,7 @@ export function SettingsView() {
       <div className="card" style={{ marginTop: 12 }}>
         <h3>Demo data</h3>
         <p className="small muted">This MVP stores data in your browser. Reset to bring back the sample family.</p>
-        <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm('Reset all demo data?')) { dispatch({ type: 'reset' }); toast('Demo data reset'); } }}>Reset demo data</button>
+        <ResetDemo />
       </div>
       {editing && <RuleEditor accountId={account.id} initial={editing === 'new' ? undefined : rules.find((r) => r.id === editing)} onDone={() => setEditing(null)} />}
       {adding && <AddMemberSheet onClose={() => setAdding(false)} />}

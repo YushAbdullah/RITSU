@@ -43,30 +43,24 @@ const NAV: Record<Role, Tab[]> = {
 };
 
 const SESSION = 'ritsu:session';
-const readHash = () => {
-  const [, tab = 'home', param] = window.location.hash.split('/');
-  return { tab, param };
-};
+// Routing lives in component state (no URL hash), so the app also works
+// inside embedded viewers that restrict hash formats.
+type Route = { tab: string; param?: string };
 
 export default function App() {
   const { state, dispatch, error, setError } = useStore();
   const [memberId, setMemberId] = useState<string | null>(() => { try { return localStorage.getItem(SESSION); } catch { return null; } });
-  const [route, setRoute] = useState(readHash);
+  const [route, setRoute] = useState<Route>({ tab: 'home' });
   const [notifOpen, setNotifOpen] = useState(false);
   const { msg, show } = useToast();
 
-  useEffect(() => {
-    const h = () => setRoute(readHash());
-    window.addEventListener('hashchange', h);
-    return () => window.removeEventListener('hashchange', h);
-  }, []);
   useEffect(() => { try { memberId ? localStorage.setItem(SESSION, memberId) : localStorage.removeItem(SESSION); } catch { /* ignore */ } }, [memberId]);
   useEffect(() => { if (error) { show(error); setError(null); } }, [error, show, setError]);
 
   const me = state.members.find((m) => m.id === memberId);
   const account = me && state.accounts.find((a) => a.id === me.accountId);
   const go = useCallback((tab: string, param?: string) => {
-    window.location.hash = `/${tab}${param ? `/${param}` : ''}`;
+    setRoute({ tab, param });
     window.scrollTo({ top: 0 });
   }, []);
 
@@ -99,7 +93,7 @@ export default function App() {
           <div className="brand"><span className="brand-mark">R</span><span>Ritsu</span></div>
           <div className="spacer" />
           <button className="icon-btn" onClick={() => setNotifOpen(true)} aria-label={`Notifications, ${unread} unread`}>🔔{unread > 0 && <span className="dot">{unread}</span>}</button>
-          <button className="who" onClick={() => { setMemberId(null); window.location.hash = ''; }} title="Switch profile">
+          <button className="who" onClick={() => { setMemberId(null); setRoute({ tab: 'home' }); }} title="Switch profile">
             <span className="av">{me.avatar}</span>
             <span style={{ textAlign: 'left' }}><b>{me.name}</b><small>{roleName(me.role)} · switch</small></span>
           </button>

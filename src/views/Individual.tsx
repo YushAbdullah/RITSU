@@ -7,7 +7,7 @@ import { uid } from '../lib/store';
 import type { MoneyKind } from '../lib/types';
 import { AmountBars, CategoryBars, DivergingBars, LineChart } from '../components/charts';
 import { ago, Empty, money, PageHead, Progress, Ring, Seg, Sheet, signed, Stat, useApp } from '../components/ui';
-import { RuleEditor, TxList } from './shared';
+import { ResetDemo, RuleEditor, TxList } from './shared';
 import { AuditCard } from './Guardian';
 
 const useHabits = () => {
@@ -328,7 +328,7 @@ export function IndSettings() {
       <AuditCard />
       <div className="card" style={{ marginTop: 12 }}>
         <h3>Demo data</h3>
-        <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm('Reset all demo data?')) { dispatch({ type: 'reset' }); toast('Demo data reset'); } }}>Reset demo data</button>
+        <ResetDemo />
       </div>
     </>
   );

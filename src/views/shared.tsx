@@ -83,3 +83,17 @@ export function RuleEditor({ initial, accountId, memberId, onDone }: { initial?:
     </Sheet>
   );
 }
+
+/** Two-step reset (in-page confirmation; browser confirm dialogs are not available everywhere). */
+export function ResetDemo() {
+  const { dispatch, toast } = useApp();
+  const [armed, setArmed] = useState(false);
+  if (!armed) return <button className="btn btn-ghost btn-sm" onClick={() => setArmed(true)}>Reset demo data</button>;
+  return (
+    <div className="row">
+      <span className="small">This erases every change you made. Continue?</span>
+      <button className="btn btn-danger btn-sm" onClick={() => { dispatch({ type: 'reset' }); toast('Demo data reset'); setArmed(false); }}>Yes, reset</button>
+      <button className="btn btn-ghost btn-sm" onClick={() => setArmed(false)}>Cancel</button>
+    </div>
+  );
+}

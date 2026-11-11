@@ -81,7 +81,7 @@ button { cursor: pointer; }
 
 /* Layout shell */
 .topbar {
-  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 12px;
   padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 0.18em; font-size: 12px; text-transform: uppercase; }
