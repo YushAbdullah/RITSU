@@ -27,6 +27,13 @@ npm run build        # static build in dist/
 npm run build:single # one self-contained HTML file in dist-single/
 ```
 
+## Proof, reasons, moods and reactions
+
+- **Proof for every purchase.** Children and adults attach a photo of the receipt or item (taken with the camera or picked from the gallery, compressed on the device) or a link such as an e-receipt. Merit awards also need proof by default; the main guardian can switch that off in Settings.
+- **A reason for every deduction.** A parent must write a reason or justification the child can read, and can add a photo or link as evidence.
+- **Mood check-ins.** Children pick how they feel each day (happy, excited, ok, so-so, sad, upset) and pick a mood for every purchase. Guardians see each child's latest mood on the home screen.
+- **Reactions on spending.** Guardians react to a child's purchase with Good choice, Okay, Why so much? or Let's talk, plus an optional note. The child is notified and can answer.
+
 ## Accounts, saving and privacy
 
 - **Play money only.** Points convert to a reward value shown in a currency label (RM by default). Ritsu never holds, sends or receives real money.

@@ -33,7 +33,7 @@ const NAV: Record<Role, Tab[]> = {
     { id: 'home', label: 'Home', icon: '🏠', view: ChildHome },
     { id: 'points', label: 'Points', icon: '⭐', view: ChildPoints },
     { id: 'badges', label: 'Badges', icon: '🎖️', view: ChildBadges },
-    { id: 'money', label: 'Money', icon: '🐷', view: ChildMoney },
+    { id: 'money', label: 'Money', icon: '💰', view: ChildMoney },
   ],
   individual: [
     { id: 'home', label: 'Today', icon: '☀️', view: IndToday },
@@ -83,7 +83,7 @@ export default function App() {
 
   const toast = msg && <div className="toast" role="status">{msg}</div>;
   if (phase.kind === 'loading') return <div className="app theme-pro"><div className="login"><p className="muted">Loading…</p></div></div>;
-  if (phase.kind === 'welcome') return <div className="app theme-pro"><Welcome onAuthed={onAuthed} onDemo={() => setPhase({ kind: 'ready', source: 'demo', state: demoStore.load() ?? seed() })} />{toast}</div>;
+  if (phase.kind === 'welcome') return <div className="app theme-pro"><Welcome onAuthed={onAuthed} onDemo={() => setPhase({ kind: 'ready', source: 'demo', state: (() => { const d = demoStore.load(); return d && d.moods ? d : seed(); })() })} />{toast}</div>;
   if (phase.kind === 'setup') {
     return <div className="app theme-pro"><Setup user={phase.user} onCancel={signOut} onDone={async (st) => {
       try { await backend().save(phase.user, st); setPhase({ kind: 'ready', source: 'account', user: phase.user, state: st }); show('All set! Your family is saved.'); }

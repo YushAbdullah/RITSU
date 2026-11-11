@@ -1,7 +1,7 @@
 // Demo data: one family (two guardians, two children) and one individual adult,
 // with about six weeks of history so every dashboard has something to show.
 import { DAY, cycleKey, prevCycle, proposeAllowance } from './logic';
-import type { Account, Member, MoneyEntry, Rule, State, Transaction } from './types';
+import type { Account, Member, MoneyEntry, MoodKind, Rule, State, Transaction } from './types';
 
 function rng(seedNum: number) {
   let a = seedNum;
@@ -143,6 +143,9 @@ export function seed(now = new Date()): State {
   const prevStart = (d: number) => { const [y, m] = prev.split('-').map(Number); return new Date(y, m - 1, d).toISOString().slice(0, 10); };
 
   const money: MoneyEntry[] = [];
+  /** A tiny drawn receipt so demo purchases show what proof looks like. */
+  const receipt = (item: string, amount: number) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320"><rect width="240" height="320" fill="#fff"/><rect x="20" y="20" width="200" height="280" rx="8" fill="#F6FEF6" stroke="#DDEBDF"/><text x="120" y="60" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#0F1A12">RECEIPT</text><line x1="40" y1="80" x2="200" y2="80" stroke="#DDEBDF"/><text x="40" y="120" font-family="sans-serif" font-size="14" fill="#4E544F">${item.replace(/[<&>]/g, '')}</text><text x="200" y="150" font-family="sans-serif" font-size="18" text-anchor="end" fill="#0F1A12">RM ${amount.toFixed(2)}</text><line x1="40" y1="250" x2="200" y2="250" stroke="#DDEBDF" stroke-dasharray="4 4"/><text x="120" y="280" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#5F655F">Thank you!</text></svg>`);
   let mi = 0;
   const m = (memberId: string, kind: MoneyEntry['kind'], amount: number, category: string, note: string, date: string, need?: boolean, goalId?: string) =>
     money.push({ id: `mn_seed_${mi++}`, memberId, kind, amount, category, note, date, need, goalId });
@@ -163,11 +166,14 @@ export function seed(now = new Date()): State {
     if (limit >= 20) m('m_hafiz', 'expense', 260, 'Groceries', 'Groceries', day(20), true);
     if (limit >= 24) m('m_hafiz', 'expense', 430, 'Shopping', 'Gadget', day(24), false);
   }
-  // Children's pocket money.
-  m('m_danish', 'expense', 6, 'Snacks', 'Ice cream', iso(4), false);
-  m('m_danish', 'expense', 12, 'Toys', 'Trading cards', iso(9), false);
-  m('m_sara', 'expense', 25, 'Books', 'Novel', iso(6), true);
-  m('m_sara', 'expense', 18, 'Food', 'Bubble tea with friends', iso(3), false);
+  // Children's pocket money, each with a receipt and how they felt.
+  const kid = (memberId: string, amount: number, category: string, note: string, date: string, need: boolean, mood: MoodKind, reaction?: MoneyEntry['reaction']) =>
+    money.push({ id: `mn_seed_${mi++}`, memberId, kind: 'expense', amount, category, note, date, need, mood, proof: { kind: 'photo', url: receipt(note, amount), name: 'receipt.svg' }, ...(reaction ? { reaction } : {}) });
+  const ago = (d: number) => new Date(today.getTime() - d * DAY - 2 * 3_600_000).toISOString();
+  kid('m_danish', 6, 'Snacks', 'Ice cream', iso(4), false, 'happy', { kind: 'great', by: 'm_aisyah', at: ago(4) });
+  kid('m_danish', 12, 'Toys', 'Trading cards', iso(9), false, 'excited', { kind: 'why', note: 'That is a lot of cards. What about your Lego jar?', by: 'm_aisyah', at: ago(9), reply: 'I traded the doubles, Mama', replyAt: ago(8) });
+  kid('m_sara', 25, 'Books', 'Novel', iso(6), true, 'happy');
+  kid('m_sara', 18, 'Food', 'Bubble tea with friends', iso(3), false, 'ok');
 
   const state: State = {
     version: 1, accounts, members, rules: DEMO_RULES, transactions: txs,
@@ -184,6 +190,11 @@ export function seed(now = new Date()): State {
       { id: 'g_japan', memberId: 'm_hafiz', name: 'Japan trip', icon: '🗾', target: 6000, saved: 1250, targetDate: `${now.getFullYear() + 1}-04-01` },
     ],
     money,
+    moods: [
+      { id: 'md_seed_1', memberId: 'm_danish', mood: 'happy', note: 'Football at recess', at: ago(0) },
+      { id: 'md_seed_2', memberId: 'm_sara', mood: 'meh', note: 'Lots of homework', at: ago(1) },
+      { id: 'md_seed_3', memberId: 'm_danish', mood: 'ok', at: ago(1) },
+    ],
     assessments: [{
       id: 'as_seed_1', memberId: 'm_hafiz', month: prev, rating: 3,
       wentWell: 'Gym three times most weeks, cooked more.', improve: 'Too many delivery orders on late nights.',

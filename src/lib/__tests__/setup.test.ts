@@ -13,7 +13,7 @@ describe('account setup', () => {
     expect(s.transactions).toHaveLength(0);
     // The new state works with the engine straight away.
     const [mum, ali] = s.members;
-    const next = reduce(s, { type: 'award', memberId: ali.id, actorId: mum.id, kind: 'merit', points: 2, category: 'Chores', description: 'Made the bed' });
+    const next = reduce(s, { type: 'award', memberId: ali.id, actorId: mum.id, kind: 'merit', points: 2, category: 'Chores', description: 'Made the bed', proof: { kind: 'link', url: 'https://example.com/bed.jpg' } });
     expect(next.transactions).toHaveLength(1);
   });
 

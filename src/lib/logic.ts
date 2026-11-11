@@ -168,7 +168,7 @@ export function badges(state: State, memberId: string, now = new Date()): Badge[
     b('century', 'Century', '💯', '100 lifetime merit points', s.merit / 100),
     b('helper', 'Home Hero', '🏠', '10 chores merits', cat('Chores') / 10),
     b('scholar', 'Bookworm', '📚', '10 study or reading merits', (cat('Study') + cat('Reading')) / 10),
-    b('saver', 'Smart Saver', '🐷', 'Reach 50% of a savings goal', bestGoal / 0.5),
+    b('saver', 'Smart Saver', '🏦', 'Reach 50% of a savings goal', bestGoal / 0.5),
     b('streak30', 'Unstoppable', '🚀', '30-day merit streak', st / 30),
   ];
 }
