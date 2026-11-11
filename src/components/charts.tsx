@@ -72,7 +72,7 @@ function roundBottom(x: number, y: number, w: number, h: number) {
 }
 
 /** A single series over time with a crosshair tooltip. */
-export function LineChart({ points, height = 180, label, format = (v: number) => String(v), color = 'var(--primary)' }: {
+export function LineChart({ points, height = 180, label, format = (v: number) => String(v), color = 'var(--chart)' }: {
   points: { label: string; value: number }[]; height?: number; label: string; format?: (v: number) => string; color?: string;
 }) {
   const tip = useTip();
@@ -136,7 +136,7 @@ export function Sparkline({ values, width = 96, height = 28 }: { values: number[
   const hi = Math.max(...values), lo = Math.min(...values);
   const span = hi - lo || 1;
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${(i / Math.max(1, values.length - 1)) * (width - 4) + 2} ${height - 2 - ((v - lo) / span) * (height - 4)}`).join('');
-  return <svg width={width} height={height} aria-hidden="true"><path d={d} fill="none" stroke="var(--primary)" strokeWidth={2} strokeLinejoin="round" /></svg>;
+  return <svg width={width} height={height} aria-hidden="true"><path d={d} fill="none" stroke="var(--chart)" strokeWidth={2} strokeLinejoin="round" /></svg>;
 }
 
 /** Spending by category as horizontal bars in one hue (magnitude). */

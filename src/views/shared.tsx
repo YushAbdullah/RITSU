@@ -157,7 +157,7 @@ export function AccountCard() {
       )}
       {session.source === 'account' && session.deleteAccount && (
         <div style={{ marginTop: 12 }}>
-          {!confirmDelete ? <button className="btn btn-ghost btn-sm" style={{ color: 'var(--neg, #C2452F)' }} onClick={() => setConfirmDelete(true)}>Delete account</button> : (
+          {!confirmDelete ? <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmDelete(true)}>Delete account</button> : (
             <div className="row" style={{ flexWrap: 'wrap' }}>
               <span className="small">This permanently erases your account and all family data on this device. Continue?</span>
               <button className="btn btn-danger btn-sm" onClick={() => { void session.deleteAccount?.().catch((e: Error) => toast(e.message)); }}>Yes, delete</button>
