@@ -337,6 +337,19 @@ table.tbl td.r, table.tbl th.r { text-align: right; }
 .person .av { width: 56px; height: 56px; border-radius: 50%; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; font-size: 24px; font-weight: 600; }
 .person .av.alt { background: var(--primary); color: var(--on-primary); }
 .person p { margin: 0; }
+.toon { display: block; overflow: visible; }
+.toon-bob { animation: toon-bob 3.2s ease-in-out infinite; transform-origin: 60px 110px; }
+.toon-bob-late { animation-delay: -1.6s; }
+.toon-eyes { animation: toon-blink 4.6s infinite; transform-box: fill-box; transform-origin: center; }
+.toon-hair { animation: toon-sway 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.toon-glint { animation: toon-glint 4.6s infinite; }
+.toon-spark { animation: toon-spark 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.person:hover .toon-bob { animation-duration: 0.9s; }
+@keyframes toon-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3px) rotate(-1.5deg); } }
+@keyframes toon-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes toon-sway { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(2deg); } }
+@keyframes toon-glint { 0%, 60%, 100% { opacity: 0; } 70%, 80% { opacity: 0.9; } }
+@keyframes toon-spark { 0%, 100% { transform: scale(0.6) rotate(0); opacity: 0.4; } 50% { transform: scale(1.1) rotate(45deg); opacity: 1; } }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin: 4px 0 0; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--accent); }
 

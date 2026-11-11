@@ -1,5 +1,6 @@
 // About, privacy, terms, user guide and collaboration pages. Opened from anywhere with openInfo().
 import { useEffect, useState, type ReactNode } from 'react';
+import { AdinaAvatar, YusriAvatar } from '../components/avatars';
 
 export type InfoPage = 'about' | 'guide' | 'privacy' | 'terms' | 'collab';
 
@@ -127,12 +128,12 @@ function Collab() {
       <p className="lead">Ritsu started from real pain points shared by parents and children, not from a feature list.</p>
       <div className="grid md2">
         <div className="card person">
-          <div className="av" aria-hidden="true">Y</div>
+          <YusriAvatar size={112} />
           <div><b>Yusri</b><div className="small muted">Founder</div></div>
           <p className="small">Product vision, rules and reward logic, and building Ritsu.</p>
         </div>
         <div className="card person">
-          <div className="av alt" aria-hidden="true">A</div>
+          <AdinaAvatar size={112} />
           <div><b>Adina</b><div className="small muted">UI/UX Designer · Community Catalyst</div></div>
           <p className="small">Led the research into user pain points, ran conversations with families and the community, and shaped how Ritsu looks and feels so it is easy for both parents and children.</p>
         </div>
