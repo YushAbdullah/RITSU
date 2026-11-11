@@ -1,3 +1,4 @@
+import { InfoLinks } from './Info';
 import { useState } from 'react';
 import { AuthError, backend, hashSecret, newSalt, type User } from '../lib/backend';
 import { newFamilyState, newIndividualState, type NewChild } from '../lib/setup';
@@ -73,6 +74,8 @@ export function Welcome({ onAuthed, onDemo }: { onAuthed: (u: User) => void; onD
       <div style={{ textAlign: 'center', marginTop: 20 }}>
         <button className="btn btn-ghost" onClick={onDemo}>Just looking? Try the demo family</button>
       </div>
+      <InfoLinks center />
+      <p className="small muted" style={{ textAlign: 'center', margin: '4px 0 0' }}>© 2026 Ritsu · Made in Malaysia</p>
     </div>
   );
 }
