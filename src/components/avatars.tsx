@@ -39,31 +39,37 @@ export function YusriAvatar({ size = 120 }: { size?: number }) {
 
 export function AdinaAvatar({ size = 120 }: { size?: number }) {
   return (
-    <svg className="toon" viewBox="0 0 120 120" width={size} height={size} role="img" aria-label="Cartoon portrait of Adina: blue hijab and glasses">
+    <svg className="toon" viewBox="0 0 120 120" width={size} height={size} role="img" aria-label="Cartoon portrait of Adina: modern blue hijab and round owl glasses">
       <defs><clipPath id="toon-clip-a"><circle cx="60" cy="60" r="58" /></clipPath></defs>
       <circle cx="60" cy="60" r="58" fill="#DDEEFF" />
       <path className="toon-spark" d="M98 22l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#FFC94D" />
       <g clipPath="url(#toon-clip-a)"><g className="toon-bob toon-bob-late">
-        {/* top + hijab drape */}
-        <path d="M16 122c0-24 18-36 44-36s44 12 44 36z" fill="#2F6FCB" />
-        <path d="M30 64c0-24 13-40 30-40s30 16 30 40c0 10-3 20-8 26-6 6-14 9-22 9s-16-3-22-9c-5-6-8-16-8-26z" fill="#3B82E0" />
-        <path className="toon-hair" d="M40 92c6 6 13 9 20 9s14-3 20-9" fill="none" stroke="#2A63B8" strokeWidth="3" strokeLinecap="round" />
+        {/* cream top */}
+        <path d="M18 122c0-22 18-33 42-33s42 11 42 33z" fill="#F4EFE6" />
+        {/* modern hijab: soft voluminous crown wrapping the face */}
+        <path d="M60 20c-21 0-31 17-30 38 1 19 9 32 30 37 21-5 29-18 30-37 1-21-9-38-30-38z" fill="#3B82E0" />
+        <path d="M46 28c5-4 10-5.5 16-5.5" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" />
         {/* face */}
-        <ellipse cx="60" cy="63" rx="20" ry="22" fill="#E6B48F" />
-        {/* inner cap edge */}
-        <path d="M39 58c2-12 10-19 21-19s19 7 21 19c-5-4-12-6-21-6s-16 2-21 6z" fill="#2F6FCB" />
-        {/* glasses */}
-        <g fill="rgba(255,255,255,0.2)" stroke="#262828" strokeWidth="2.4">
-          <rect x="42" y="59" width="14" height="11" rx="5" /><rect x="64" y="59" width="14" height="11" rx="5" />
+        <ellipse cx="60" cy="63" rx="19" ry="21" fill="#E6B48F" />
+        {/* light under-scarf band at the forehead */}
+        <path d="M40.5 58c2-12 9.5-18 19.5-18s17.5 6 19.5 18c-5-4.5-11.5-6.5-19.5-6.5s-14.5 2-19.5 6.5z" fill="#BFD9FF" />
+        <path d="M42 56.5c5-4 11-5.8 18-5.8s13 1.8 18 5.8" fill="none" stroke="#3B82E0" strokeWidth="1.6" strokeLinecap="round" />
+        {/* asymmetric drape across the chin and over one shoulder */}
+        <path d="M84 70c-3 14-13 24-30 28-9 2-17 7-21 24h26c2-10 9-15 18-19 11-5 16-16 15-28z" fill="#2F6FCB" />
+        <path className="toon-hair" d="M80 80c-5 10-13 16-24 19M86 88c-4 8-10 12-18 15" fill="none" stroke="#2A63B8" strokeWidth="2.4" strokeLinecap="round" />
+        {/* pearl pin */}
+        <circle cx="82" cy="68" r="3" fill="#FFF6E0" stroke="#E3C27A" strokeWidth="1.2" />
+        {/* round owl glasses */}
+        <g fill="rgba(255,255,255,0.22)" stroke="#262828" strokeWidth="2.6">
+          <circle cx="51" cy="64" r="8" /><circle cx="69" cy="64" r="8" />
         </g>
-        <path d="M56 64q4-2 8 0" fill="none" stroke="#262828" strokeWidth="2.2" strokeLinecap="round" />
-        <path className="toon-glint" d="M45 63l3-3M67 63l3-3" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-        {/* eyes with lashes */}
-        <g className="toon-eyes" fill="#1B1410"><ellipse cx="49" cy="65" rx="2.3" ry="2.9" /><ellipse cx="71" cy="65" rx="2.3" ry="2.9" /></g>
-        <path d="M45.5 61l-1.6-1.4M74.5 61l1.6-1.4" stroke="#1B1410" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M59 63.5q1-1.4 2 0" fill="none" stroke="#262828" strokeWidth="2.4" strokeLinecap="round" />
+        <path className="toon-glint" d="M46.5 60l2.6-2.6M64.5 60l2.6-2.6" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+        {/* eyes */}
+        <g className="toon-eyes" fill="#1B1410"><ellipse cx="51" cy="65" rx="2.3" ry="2.9" /><ellipse cx="69" cy="65" rx="2.3" ry="2.9" /></g>
         {/* cheeks + smile */}
-        <circle cx="45" cy="74" r="3.6" fill="#F28B82" opacity="0.55" /><circle cx="75" cy="74" r="3.6" fill="#F28B82" opacity="0.55" />
-        <path d="M53.5 75q6.5 6.5 13 0" fill="none" stroke="#7A2E2A" strokeWidth="2.6" strokeLinecap="round" />
+        <circle cx="47.5" cy="75" r="3.2" fill="#F28B82" opacity="0.55" /><circle cx="72.5" cy="75" r="3.2" fill="#F28B82" opacity="0.55" />
+        <path d="M54 76q6 6 12 0" fill="none" stroke="#7A2E2A" strokeWidth="2.6" strokeLinecap="round" />
       </g></g>
     </svg>
   );
