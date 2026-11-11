@@ -57,7 +57,7 @@ npm run build:single # one self-contained HTML file in dist-single/
 
 ## Design
 
-Based on the Ember & Steel design system, split into two themes: a professional steel-and-brick theme (Montserrat + Bebas Neue, dark mode supported) for guardians and adults, and a warm, rounded kid theme (Nunito + Fredoka, large numbers) for children. Merit and demerit use a colour-blind-safe blue/brick pair and are also separated by position (above or below the zero line).
+Based on the Fealty design system: a pale mint canvas, white cards floating on soft green-tinted shadows, ink text, and one saturated mint (#6BE683) kept for the main buttons, logo and active states (never as text on light backgrounds). One typeface, Outfit (Gilroy if licensed), with hierarchy from size and weight. Guardians and adults get the standard theme with dark mode; children get the same family with rounder shapes, bigger numbers and a sunny accent. Merit and demerit stay a colour-blind-safe blue/red pair and are also marked with +/− signs. The logo files are in the project's `ritsu-logo` folder.
 
 ## Next steps
 

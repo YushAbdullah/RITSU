@@ -4,8 +4,8 @@
   "description": "Turn good habits into points and a fun reward value, with a clear record of why every point moved.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#A3302A",
+  "background_color": "#F6FEF6",
+  "theme_color": "#6BE683",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
