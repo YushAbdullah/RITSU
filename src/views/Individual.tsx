@@ -4,7 +4,8 @@ import {
   proposeAllowance, series, streak, summarise, type Granularity,
 } from '../lib/logic';
 import { uid } from '../lib/store';
-import type { MoneyKind } from '../lib/types';
+import type { MoneyKind, Proof } from '../lib/types';
+import { ProofInput, ProofView } from '../components/evidence';
 import { AmountBars, CategoryBars, DivergingBars, LineChart } from '../components/charts';
 import { ago, Empty, money, PageHead, Progress, Ring, Seg, Sheet, signed, Stat, useApp } from '../components/ui';
 import { AccountCard, RuleEditor, TxList } from './shared';
@@ -146,6 +147,7 @@ export function IndMoney() {
   const [need, setNeed] = useState(true);
   const [note, setNote] = useState('');
   const [goalName, setGoalName] = useState('');
+  const [proof, setProof] = useState<Proof | undefined>();
   const [goalId, setGoalId] = useState(goals[0]?.id ?? '');
   const cats: Record<MoneyKind, string[]> = {
     expense: ['Food', 'Groceries', 'Food delivery', 'Transport', 'Rent', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Other'],
@@ -184,7 +186,7 @@ export function IndMoney() {
       <div className="card">
         {entries.length ? <ul className="list">{entries.map((m) => (
           <li className="item" key={m.id}><div className="ic">{m.kind === 'income' ? '💵' : m.kind === 'saving' ? '🏦' : '🧾'}</div>
-            <div className="body"><div className="t">{m.note || m.category}</div><div className="s">{m.category} · {m.date}{m.kind === 'expense' ? (m.need ? ' · need' : ' · want') : ''}</div></div>
+            <div className="body"><div className="t">{m.note || m.category}</div><div className="s">{m.category} · {m.date}{m.kind === 'expense' ? (m.need ? ' · need' : ' · want') : ''}</div>{m.proof && <div style={{ marginTop: 6 }}><ProofView proof={m.proof} /></div>}</div>
             <div className={`pts ${m.kind === 'income' ? 'pos' : ''}`} style={{ fontSize: 20 }}>{m.kind === 'income' ? '+' : '−'}{money(m.amount, cur)}</div></li>
         ))}</ul> : <Empty icon="🧾" text="No entries yet." />}
       </div>
@@ -199,11 +201,12 @@ export function IndMoney() {
           </div>
           {kind === 'expense' && <div className="field"><label>Need or want?</label><Seg label="Need or want" value={need ? 'need' : 'want'} onChange={(v) => setNeed(v === 'need')} options={[{ value: 'need', label: 'Need' }, { value: 'want', label: 'Want' }]} /></div>}
           {kind !== 'saving' && <div className="field"><label htmlFor="en">Note</label><input id="en" className="input" value={note} onChange={(e) => setNote(e.target.value)} /></div>}
+          {kind !== 'saving' && <ProofInput key={kind} id="in-proof" label={kind === 'expense' ? 'Receipt, photo or link' : 'Payslip, photo or link'} required={kind === 'expense'} value={proof} onChange={setProof} />}
           <button className="btn btn-primary btn-block" onClick={() => {
             const ok = kind === 'saving'
               ? dispatch({ type: 'contribute', actorId: me.id, goalId, amount })
-              : dispatch({ type: 'addMoney', actorId: me.id, entry: { id: uid('mn'), memberId: me.id, kind, amount, category: cat, note, need: kind === 'expense' ? need : undefined, date: new Date().toISOString().slice(0, 10) } });
-            if (ok) { toast('Saved'); setSheet(null); setNote(''); }
+              : dispatch({ type: 'addMoney', actorId: me.id, entry: { id: uid('mn'), memberId: me.id, kind, amount, category: cat, note, need: kind === 'expense' ? need : undefined, proof, date: new Date().toISOString().slice(0, 10) } });
+            if (ok) { toast('Saved'); setSheet(null); setNote(''); setProof(undefined); }
           }}>Save</button>
         </Sheet>
       )}

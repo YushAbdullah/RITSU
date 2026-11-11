@@ -33,7 +33,7 @@ const NAV: Record<Role, Tab[]> = {
     { id: 'home', label: 'Home', icon: '🏠', view: ChildHome },
     { id: 'points', label: 'Points', icon: '⭐', view: ChildPoints },
     { id: 'badges', label: 'Badges', icon: '🎖️', view: ChildBadges },
-    { id: 'money', label: 'Money', icon: '🐷', view: ChildMoney },
+    { id: 'money', label: 'Money', icon: '💰', view: ChildMoney },
   ],
   individual: [
     { id: 'home', label: 'Today', icon: '☀️', view: IndToday },

@@ -7,11 +7,12 @@ import type { State } from '../types';
 const fresh = (): State => {
   const s = seed();
   // Empty ledger so tests control every number.
-  return { ...s, transactions: [], disputes: [], cycles: [] };
+  return { ...s, transactions: [], disputes: [], cycles: [], moods: [] };
 };
 const acct = (s: State) => s.accounts.find((a) => a.id === FAMILY)!;
 const award = (s: State, memberId: string, kind: 'merit' | 'demerit', points: number, actorId = 'm_aisyah') =>
-  reduce(s, { type: 'award', memberId, actorId, kind, points, category: 'Chores', description: `${kind} ${points}` });
+  reduce(s, { type: 'award', memberId, actorId, kind, points, category: 'Chores', description: `${kind} ${points}`, ...EVIDENCE });
+const EVIDENCE = { reason: 'Left toys on the stairs again', proof: { kind: 'link' as const, url: 'https://example.com/photo.jpg' } };
 
 describe('points ledger', () => {
   it('records actor, category, timestamp and cycle on every transaction', () => {
@@ -121,5 +122,41 @@ describe('seed data', () => {
     expect(s.transactions.length).toBeGreaterThan(100);
     expect(s.disputes.filter((d) => d.status === 'open')).toHaveLength(1);
     expect(s.transactions.filter((t) => t.status === 'pending')).toHaveLength(1);
+  });
+});
+
+describe('proof, reasons, moods and reactions', () => {
+  const link = { kind: 'link' as const, url: 'https://example.com/receipt.jpg' };
+  it('needs a written justification for every deduction by a parent', () => {
+    expect(() => reduce(fresh(), { type: 'award', memberId: 'm_danish', actorId: 'm_aisyah', kind: 'demerit', points: 2, category: 'Respect', description: 'Rude words' })).toThrow(/justification/);
+    const s = reduce(fresh(), { type: 'award', memberId: 'm_danish', actorId: 'm_aisyah', kind: 'demerit', points: 2, category: 'Respect', description: 'Rude words', reason: 'Shouted at his sister at dinner' });
+    expect(s.transactions[0].reason).toBe('Shouted at his sister at dinner');
+  });
+  it('needs proof for merit awards in a family unless switched off', () => {
+    const base = { type: 'award' as const, memberId: 'm_danish', actorId: 'm_aisyah', kind: 'merit' as const, points: 2, category: 'Chores', description: 'Made the bed' };
+    expect(() => reduce(fresh(), base)).toThrow(/proof/);
+    expect(() => reduce(fresh(), { ...base, proof: { kind: 'link', url: 'not a link' } })).toThrow(/not valid/);
+    expect(reduce(fresh(), { ...base, proof: link }).transactions[0].proof).toEqual(link);
+    const off = fresh(); off.accounts = off.accounts.map((a) => (a.id === FAMILY ? { ...a, requireActivityProof: false } : a));
+    expect(reduce(off, base).transactions).toHaveLength(1);
+  });
+  it('needs a receipt for every purchase and a mood from children', () => {
+    const entry = { id: 'mn_t', memberId: 'm_danish', kind: 'expense' as const, amount: 5, category: 'Snacks', note: 'Chips', date: '2026-11-11' };
+    expect(() => reduce(fresh(), { type: 'addMoney', actorId: 'm_danish', entry })).toThrow(/receipt/);
+    expect(() => reduce(fresh(), { type: 'addMoney', actorId: 'm_danish', entry: { ...entry, proof: link } })).toThrow(/feel/);
+    const s = reduce(fresh(), { type: 'addMoney', actorId: 'm_danish', entry: { ...entry, proof: link, mood: 'happy' } });
+    const r = reduce(s, { type: 'reactMoney', entryId: 'mn_t', actorId: 'm_aisyah', kind: 'why', note: 'That is half your week' });
+    expect(r.money[0].reaction).toMatchObject({ kind: 'why', by: 'm_aisyah' });
+    expect(r.notifications[0]).toMatchObject({ memberId: 'm_danish' });
+    expect(() => reduce(r, { type: 'reactMoney', entryId: 'mn_t', actorId: 'm_danish', kind: 'great' })).toThrow(/guardian/);
+    const replied = reduce(r, { type: 'replyMoney', entryId: 'mn_t', memberId: 'm_danish', text: 'It was for the whole class' });
+    expect(replied.money[0].reaction?.reply).toBe('It was for the whole class');
+    expect(replied.notifications[0].memberId).toBe('m_aisyah');
+  });
+  it('keeps one mood check-in per person per day', () => {
+    let s = reduce(fresh(), { type: 'checkIn', memberId: 'm_danish', mood: 'ok', at: '2026-11-11T08:00:00Z' });
+    s = reduce(s, { type: 'checkIn', memberId: 'm_danish', mood: 'happy', at: '2026-11-11T18:00:00Z' });
+    s = reduce(s, { type: 'checkIn', memberId: 'm_danish', mood: 'sad', at: '2026-11-12T08:00:00Z' });
+    expect(s.moods!.filter((m) => m.memberId === 'm_danish').map((m) => m.mood)).toEqual(['sad', 'happy']);
   });
 });

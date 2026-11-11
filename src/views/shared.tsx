@@ -4,6 +4,7 @@ import type { Member } from '../lib/types';
 import { isReversed } from '../lib/logic';
 import type { Rule, RuleKind, Transaction } from '../lib/types';
 import { ago, Empty, Seg, Sheet, signed, useApp } from '../components/ui';
+import { ProofView } from '../components/evidence';
 
 export function TxItem({ tx, showWho, actions }: { tx: Transaction; showWho?: boolean; actions?: React.ReactNode }) {
   const { state } = useApp();
@@ -25,6 +26,8 @@ export function TxItem({ tx, showWho, actions }: { tx: Transaction; showWho?: bo
           {reversed && <> · <span className="chip">Corrected</span></>}
           {dispute && <> · <span className={`chip ${dispute.status === 'open' ? 'warn' : dispute.status === 'upheld' ? '' : 'ok'}`}>{dispute.status === 'open' ? 'Question open' : `Question ${dispute.status}`}</span></>}
         </div>
+        {tx.reason && <div className="reason"><b>Reason:</b> {tx.reason}</div>}
+        {tx.proof && <div style={{ marginTop: 6 }}><ProofView proof={tx.proof} /></div>}
         {actions}
       </div>
       <div className={`pts ${tx.points > 0 ? 'pos' : 'neg'}`} style={{ opacity: tx.status === 'posted' ? 1 : 0.5 }}>{signed(tx.points)}</div>

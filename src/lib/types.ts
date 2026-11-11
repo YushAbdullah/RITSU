@@ -30,6 +30,37 @@ export interface Account {
   approvalThreshold: number;
   /** Days a child has to dispute a deduction. */
   disputeWindowDays: number;
+  /** Merit awards need a photo, receipt or link as proof. Defaults to on for families. */
+  requireActivityProof?: boolean;
+}
+
+/** Evidence attached to an activity or a purchase: a compressed photo (data URL) or a link. */
+export interface Proof {
+  kind: 'photo' | 'link';
+  url: string;
+  name?: string;
+}
+
+export type MoodKind = 'happy' | 'excited' | 'ok' | 'meh' | 'sad' | 'angry';
+
+export interface MoodCheckin {
+  id: string;
+  memberId: string;
+  mood: MoodKind;
+  note?: string;
+  at: string;
+}
+
+/** A guardian's reaction to a child's purchase. */
+export type ReactionKind = 'great' | 'ok' | 'why' | 'talk';
+export interface Reaction {
+  kind: ReactionKind;
+  note?: string;
+  by: string;
+  at: string;
+  /** The child's answer, e.g. to "Why so much?". */
+  reply?: string;
+  replyAt?: string;
 }
 
 export interface Member {
@@ -85,6 +116,9 @@ export interface Transaction {
   approvedBy?: string;
   status: TxStatus;
   reversesId?: string;
+  /** Required justification for a deduction, shown to the child. */
+  reason?: string;
+  proof?: Proof;
   createdAt: string; // ISO timestamp
   /** Cycle key, YYYY-MM. */
   cycle: string;
@@ -143,6 +177,11 @@ export interface MoneyEntry {
   /** Whether the spender judged it a need or a want (financial discipline indicator). */
   need?: boolean;
   goalId?: string;
+  /** Receipt, photo or link. Required for new purchases. */
+  proof?: Proof;
+  /** How the child felt about the purchase. */
+  mood?: MoodKind;
+  reaction?: Reaction;
 }
 
 export interface Assessment {
@@ -188,4 +227,6 @@ export interface State {
   assessments: Assessment[];
   audit: AuditEntry[];
   notifications: Notification[];
+  /** Daily mood check-ins. Optional so older saves and backups still load. */
+  moods?: MoodCheckin[];
 }

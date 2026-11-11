@@ -3,8 +3,9 @@ import {
   balance, categoryBreakdown, cycleKey, cycleLabel, isReversed, prevCycle, proposeAllowance, series, streak, summarise,
   type Granularity,
 } from '../lib/logic';
-import { uid } from '../lib/store';
-import type { DisputeStatus, Member, Role, RuleKind, Transaction } from '../lib/types';
+import { activityProofRequired, uid } from '../lib/store';
+import type { DisputeStatus, Member, MoneyEntry, Proof, ReactionKind, Role, RuleKind, Transaction } from '../lib/types';
+import { moodOf, ProofInput, ProofView, REACTIONS } from '../components/evidence';
 import { CategoryBars, DivergingBars, LineChart, Sparkline } from '../components/charts';
 import { ago, Empty, money, PageHead, Seg, Sheet, signed, Stat, useApp } from '../components/ui';
 import { AccountCard, PinEditor, RuleEditor, TxList } from './shared';
@@ -87,9 +88,77 @@ export function GuardianHome() {
         {children.map((c) => <ChildCard key={c.id} child={c} />)}
       </div>
 
+      <SpendingReview ids={ids} />
+
       <h2 className="sec">Recent activity</h2>
       <div className="card"><TxList txs={recent} showWho /></div>
       {resolving && <ResolveSheet disputeId={resolving} onClose={() => setResolving(null)} />}
+    </>
+  );
+}
+
+function MoodLine({ memberId }: { memberId: string }) {
+  const { state } = useApp();
+  const last = (state.moods ?? []).find((m) => m.memberId === memberId);
+  const mood = moodOf(last?.mood);
+  const today = last && last.at.slice(0, 10) === new Date().toISOString().slice(0, 10);
+  return (
+    <div className="mood-line">
+      {mood && last ? <><span aria-hidden="true">{mood.emoji}</span> <span>{mood.label}</span><span className="muted"> · {today ? 'today' : ago(last.at)}</span>{last.note && <span className="muted"> · “{last.note}”</span>}</>
+        : <span className="muted">No mood check-in yet</span>}
+    </div>
+  );
+}
+
+/** Children's recent purchases with receipt, mood and the guardian's reaction. */
+function SpendingReview({ ids }: { ids: string[] }) {
+  const { state, account, me, dispatch, toast } = useApp();
+  const [reacting, setReacting] = useState<{ entry: MoneyEntry; kind: ReactionKind } | null>(null);
+  const [note, setNote] = useState('');
+  const since = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10);
+  const list = state.money.filter((m) => ids.includes(m.memberId) && m.kind === 'expense' && m.date >= since).slice(0, 8);
+  const big = Math.max(5, account.allowance.cap * 0.25);
+  const send = (entry: MoneyEntry, kind: ReactionKind, text?: string) => {
+    if (dispatch({ type: 'reactMoney', entryId: entry.id, actorId: me.id, kind, note: text })) { toast('Sent to ' + (state.members.find((m) => m.id === entry.memberId)?.name ?? 'your child')); setReacting(null); setNote(''); }
+  };
+  return (
+    <>
+      <h2 className="sec">Spending</h2>
+      <div className="card">
+        <p className="small muted" style={{ marginTop: 0 }}>Every purchase comes with a receipt, photo or link and how your child felt. React so they learn what a good choice looks like.</p>
+        {list.length ? <ul className="list">{list.map((m) => {
+          const kid = state.members.find((x) => x.id === m.memberId);
+          const mood = moodOf(m.mood);
+          return (
+            <li className="item" key={m.id} style={{ alignItems: 'flex-start' }}>
+              <div className="ic">{kid?.avatar ?? '🛍️'}</div>
+              <div className="body">
+                <div className="t">{kid?.name} · {m.note || m.category}</div>
+                <div className="s">{m.category} · {m.date} · {m.need ? 'needed it' : 'wanted it'}{mood ? ` · ${mood.emoji} ${mood.label}` : ''}{m.amount >= big && <> · <span className="chip warn">Big spend</span></>}</div>
+                <div className="row" style={{ marginTop: 6 }}>{m.proof ? <ProofView proof={m.proof} /> : <span className="chip">No receipt (older entry)</span>}</div>
+                {m.reaction ? (
+                  <div className="bubble">
+                    <b>{REACTIONS.find((r) => r.value === m.reaction!.kind)?.label}</b>{m.reaction.note && <> “{m.reaction.note}”</>}
+                    {m.reaction.reply && <div className="reply">{kid?.name}: “{m.reaction.reply}”</div>}
+                  </div>
+                ) : (me.role === 'guardian' || me.role === 'coguardian') && (
+                  <div className="react-row">
+                    {REACTIONS.map((r) => <button key={r.value} className="btn btn-ghost btn-sm" onClick={() => (r.value === 'why' || r.value === 'talk' ? setReacting({ entry: m, kind: r.value }) : send(m, r.value))}>{r.label}</button>)}
+                  </div>
+                )}
+              </div>
+              <div className="pts" style={{ fontSize: 18 }}>−{money(m.amount, account.currency)}</div>
+            </li>
+          );
+        })}</ul> : <Empty icon="🛍️" text="No purchases in the last three weeks." />}
+      </div>
+      {reacting && (
+        <Sheet title={REACTIONS.find((r) => r.value === reacting.kind)!.label} onClose={() => setReacting(null)}>
+          <p className="small muted" style={{ marginTop: 0 }}>{reacting.entry.note || reacting.entry.category}: {money(reacting.entry.amount, account.currency)}. Add a few words so your child knows what you mean.</p>
+          <div className="field"><label htmlFor="rx">Message (optional)</label><textarea id="rx" className="input" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder={reacting.kind === 'why' ? 'e.g. That is most of your week. What made it worth it?' : 'e.g. Let us look at your savings jar together tonight.'} /></div>
+          <button className="btn btn-primary btn-block" onClick={() => send(reacting.entry, reacting.kind, note)}>Send</button>
+        </Sheet>
+      )}
     </>
   );
 }
@@ -108,10 +177,11 @@ function ChildCard({ child }: { child: Member }) {
         <div className="row"><span style={{ fontSize: 34 }}>{child.avatar}</span><div><b style={{ fontSize: 17 }}>{child.name}</b><div className="small muted">Age {child.age} · 🔥 {st}-day streak</div></div></div>
         <Sparkline values={daily} />
       </div>
+      <MoodLine memberId={child.id} />
       <div className="grid g3" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))', marginTop: 12 }}>
         <div><div className="kicker">Balance</div><div className="num" style={{ fontSize: 28 }}>{balance(state.transactions, child.id)}</div></div>
         <div><div className="kicker">Month</div><div className={`num ${s.net >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 28 }}>{signed(s.net)}</div></div>
-        <div><div className="kicker">Allowance</div><div className="num" style={{ fontSize: 28 }}>{money(p.total, account.currency)}</div></div>
+        <div><div className="kicker">Allowance</div><div className="num" style={{ fontSize: 'clamp(20px, 5.5vw, 28px)', whiteSpace: 'nowrap' }}>{money(p.total, account.currency)}</div></div>
       </div>
       {goal && <div className="small muted" style={{ marginTop: 8 }}>{goal.icon} {goal.name}: {money(goal.saved, account.currency)} of {money(goal.target, account.currency)}</div>}
       <div className="row" style={{ marginTop: 12 }}>
@@ -132,21 +202,26 @@ export function AwardView() {
   const [customName, setCustomName] = useState('');
   const [customPts, setCustomPts] = useState(2);
   const [note, setNote] = useState('');
+  const [proof, setProof] = useState<Proof | undefined>();
+  const [proofKey, setProofKey] = useState(0);
+  const proofNeeded = kind === 'merit' && activityProofRequired(account);
   const rules = state.rules.filter((r) => r.accountId === account.id && r.active && r.kind === kind);
   const rule = rules.find((r) => r.id === ruleId);
   const pts = rule ? rule.points : customPts;
   const needsApproval = kind === 'demerit' && me.role === 'coguardian' && pts > account.approvalThreshold;
   const child = children.find((c) => c.id === memberId);
   const description = rule ? (note.trim() ? `${rule.name}: ${note.trim()}` : rule.name) : customName.trim();
-  const canSubmit = !!memberId && (rule || (ruleId === 'custom' && customName.trim())) && (kind === 'merit' || note.trim() || ruleId === 'custom');
+  const canSubmit = !!memberId && (rule || (ruleId === 'custom' && customName.trim())) && (kind === 'merit' || note.trim().length >= 5) && (!proofNeeded || !!proof);
 
   const submit = () => {
     if (!memberId) return;
-    if (kind === 'demerit' && !note.trim() && ruleId !== 'custom') { toast('Add a short reason your child will see'); return; }
-    const ok = dispatch({ type: 'award', memberId, actorId: me.id, kind, points: pts, category: rule?.category ?? 'Other', description: ruleId === 'custom' && note.trim() ? `${customName.trim()}: ${note.trim()}` : description, ruleId: rule?.id });
+    if (kind === 'demerit' && note.trim().length < 5) { toast('Write a reason or justification your child will see'); return; }
+    if (proofNeeded && !proof) { toast('Add a photo, receipt or link as proof'); return; }
+    const title = rule ? rule.name : customName.trim();
+    const ok = dispatch({ type: 'award', memberId, actorId: me.id, kind, points: pts, category: rule?.category ?? 'Other', description: kind === 'merit' ? (ruleId === 'custom' && note.trim() ? `${customName.trim()}: ${note.trim()}` : description) : title, ruleId: rule?.id, reason: kind === 'demerit' ? note.trim() : undefined, proof });
     if (ok) {
       toast(needsApproval ? 'Sent for approval' : kind === 'merit' ? `+${pts} for ${child?.name} 🎉` : `−${pts} recorded for ${child?.name}`);
-      setRuleId(null); setNote(''); setCustomName('');
+      setRuleId(null); setNote(''); setCustomName(''); setProof(undefined); setProofKey((k) => k + 1);
     }
   };
 
@@ -184,9 +259,12 @@ export function AwardView() {
           </div>
         )}
         <div className="field">
-          <label htmlFor="note">{kind === 'demerit' ? '4. Reason your child will see (required)' : '4. Note (optional)'}</label>
+          <label htmlFor="note">{kind === 'demerit' ? '4. Reason or justification (required, your child will see it)' : '4. Note (optional)'}</label>
           <textarea id="note" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={kind === 'demerit' ? 'e.g. Played games past 9 pm after two reminders' : 'e.g. Without being asked!'} />
+          {kind === 'demerit' && note.trim().length > 0 && note.trim().length < 5 && <span className="small" style={{ color: 'var(--danger)' }}>Please explain a little more.</span>}
         </div>
+        <ProofInput key={`${kind}-${proofKey}`} id="aw-proof" value={proof} onChange={setProof} required={proofNeeded}
+          label={kind === 'merit' ? '5. Proof: photo, receipt or link' : '5. Evidence: photo or link'} />
         {needsApproval && <div className="banner info">Deductions over {account.approvalThreshold} points from a co-guardian need the main guardian's approval. This will wait as a request.</div>}
         <button className="btn btn-primary btn-block" disabled={!canSubmit} onClick={submit}>
           {kind === 'merit' ? `Award +${pts || 0} to ${child?.name ?? '…'}` : `Deduct −${pts || 0} from ${child?.name ?? '…'}`}
@@ -442,6 +520,8 @@ export function SettingsView() {
             <div className="field"><label htmlFor="thr">Co-guardian approval above (pts)</label><input id="thr" className="input" type="number" min={0} value={a.approvalThreshold} disabled={!isOwner} onChange={(e) => setA({ ...a, approvalThreshold: num(e.target.value) })} /></div>
             <div className="field"><label htmlFor="win">Dispute window (days)</label><input id="win" className="input" type="number" min={1} value={a.disputeWindowDays} disabled={!isOwner} onChange={(e) => setA({ ...a, disputeWindowDays: num(e.target.value) })} /></div>
           </div>
+          <label className="check"><input type="checkbox" checked={a.requireActivityProof ?? true} disabled={!isOwner} onChange={(e) => setA({ ...a, requireActivityProof: e.target.checked })} /> Every merit award needs a photo, receipt or link as proof</label>
+          <p className="small muted" style={{ marginTop: 4 }}>Purchases always need a receipt, and deductions always need a written reason.</p>
           {isOwner && <button className="btn btn-primary" onClick={() => dispatch({ type: 'updateAccount', accountId: account.id, actorId: me.id, patch: a }) && toast('Settings saved')}>Save settings</button>}
         </div>
         <div className="card">
