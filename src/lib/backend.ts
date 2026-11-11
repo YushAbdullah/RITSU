@@ -78,7 +78,10 @@ class LocalBackend implements Backend {
     return 'Accounts on this device cannot reset passwords by email. Connect cloud saving to enable password reset.';
   }
   async load(user: User) { return store.get<State>(`ritsu:data:${user.id}`); }
-  async save(user: User, state: State) { store.set(`ritsu:data:${user.id}`, state); }
+  async save(user: User, state: State) {
+    try { localStorage.setItem(`ritsu:data:${user.id}`, JSON.stringify(state)); }
+    catch { throw new AuthError('This device is out of storage space, so the last change was not saved. Download a backup, then remove some old photos.'); }
+  }
   async deleteAccount(user: User) {
     const users = this.users();
     delete users[user.email];

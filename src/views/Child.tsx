@@ -1,9 +1,24 @@
 import { useState } from 'react';
 import { badges, cycleKey, cycleLabel, level, proposeAllowance, streak, summarise, weeklyChallenges } from '../lib/logic';
 import { uid } from '../lib/store';
-import type { Transaction } from '../lib/types';
+import type { MoodKind, Proof, Transaction } from '../lib/types';
+import { moodOf, MoodPicker, ProofInput, ProofView, REACTIONS } from '../components/evidence';
 import { ago, Empty, money, Progress, Seg, Sheet, signed, useApp } from '../components/ui';
 import { TxList } from './shared';
+
+function MoodCheckIn() {
+  const { state, me, dispatch, toast } = useApp();
+  const today = new Date().toISOString().slice(0, 10);
+  const mine = (state.moods ?? []).find((m) => m.memberId === me.id && m.at.slice(0, 10) === today);
+  const [note, setNote] = useState('');
+  return (
+    <div className="card mood-card" style={{ marginTop: 12 }}>
+      <b style={{ fontSize: 17 }}>{mine ? `Today you feel: ${moodOf(mine.mood)?.emoji} ${moodOf(mine.mood)?.label}` : 'How are you feeling today?'}</b>
+      <MoodPicker value={mine?.mood} label="How are you feeling today?" onChange={(mood) => { if (dispatch({ type: 'checkIn', memberId: me.id, mood, note })) toast(mine ? 'Mood updated' : 'Thanks for sharing! 💚'); }} />
+      {!mine && <input className="input" style={{ marginTop: 8 }} aria-label="Want to say why? (optional)" placeholder="Want to say why? (optional)" value={note} onChange={(e) => setNote(e.target.value)} />}
+    </div>
+  );
+}
 
 export function ChildHome() {
   const { state, me, account, go } = useApp();
@@ -24,6 +39,7 @@ export function ChildHome() {
         <div className="big">{s.net}</div>
         <div className="money">💰 Worth about {money(p.total, account.currency)}</div>
       </div>
+      <MoodCheckIn />
       <div className="grid g3 kid-tiles" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))', marginTop: 12 }}>
         <div className="card"><div className="em">🔥</div><div className="v">{st}</div><div className="small muted">day streak</div></div>
         <div className="card"><div className="em">🏆</div><div className="v">{lv.number}</div><div className="small muted">{lv.name}</div></div>
@@ -156,6 +172,10 @@ export function ChildMoney() {
   const [need, setNeed] = useState(false);
   const [note, setNote] = useState('');
   const [goalName, setGoalName] = useState('');
+  const [mood, setMood] = useState<MoodKind | undefined>();
+  const [proof, setProof] = useState<Proof | undefined>();
+  const [replyFor, setReplyFor] = useState<string | null>(null);
+  const [reply, setReply] = useState('');
   const cur = account.currency;
   return (
     <>
@@ -165,7 +185,7 @@ export function ChildMoney() {
         <div className="small" style={{ fontWeight: 800 }}>My allowance so far</div>
         <div className="num" style={{ fontSize: 48, fontWeight: 700 }}>{money(p.total, cur)}</div>
         <div className="small">{p.netPoints} points × {money(p.rate, cur)} + {money(p.base, cur)} base{p.bonus ? ` + ${money(p.bonus, cur)} bonus 🎉` : ''}{p.clampedBy === 'cap' ? ` (max ${money(p.cap, cur)})` : ''}</div>
-        <div className="small" style={{ marginTop: 6 }}>🐷 {money(p.savings, cur)} will go to savings · 🛍️ {money(p.spendable, cur)} to spend</div>
+        <div className="small" style={{ marginTop: 6 }}>🫙 {money(p.savings, cur)} will go to savings · 🛍️ {money(p.spendable, cur)} to spend</div>
         <div className="small" style={{ marginTop: 6, opacity: 0.8 }}>🎲 This is Ritsu play money, a game to help you practise saving.</div>
       </div>
       <h2 className="sec">Savings jars</h2>
@@ -177,18 +197,27 @@ export function ChildMoney() {
             <div className="small">{money(g.saved, cur)} of {money(g.target, cur)} · {money(Math.max(0, g.target - g.saved), cur)} to go</div>
           </div>
         ))}
-        {!goals.length && <div className="card"><Empty icon="🐷" text="No savings jar yet." /></div>}
+        {!goals.length && <div className="card"><Empty icon="🫙" text="No savings jar yet." /></div>}
       </div>
       <div className="row" style={{ marginTop: 12 }}>
         <button className="btn btn-primary" onClick={() => setSheet('spend')}>🛍️ I spent money</button>
-        {goals.length > 0 && <button className="btn btn-ghost" onClick={() => setSheet('save')}>🐷 Add to savings</button>}
+        {goals.length > 0 && <button className="btn btn-ghost" onClick={() => setSheet('save')}>🫙 Add to savings</button>}
         <button className="btn btn-ghost" onClick={() => setSheet('goal')}>＋ New jar</button>
       </div>
       <h2 className="sec">Money history</h2>
       <div className="card">
         {entries.length ? <ul className="list">{entries.map((m) => (
-          <li className="item" key={m.id}><div className="ic">{m.kind === 'income' ? '💵' : m.kind === 'saving' ? '🐷' : '🛍️'}</div>
-            <div className="body"><div className="t">{m.note || m.category}</div><div className="s">{m.category} · {m.date}{m.kind === 'expense' ? (m.need ? ' · needed it' : ' · wanted it') : ''}</div></div>
+          <li className="item" key={m.id}><div className="ic">{m.kind === 'income' ? '💵' : m.kind === 'saving' ? '🫙' : '🛍️'}</div>
+            <div className="body"><div className="t">{m.note || m.category}</div><div className="s">{m.category} · {m.date}{m.kind === 'expense' ? (m.need ? ' · needed it' : ' · wanted it') : ''}{m.mood ? ` · ${moodOf(m.mood)?.emoji}` : ''}</div>
+              {m.proof && <div style={{ marginTop: 6 }}><ProofView proof={m.proof} /></div>}
+              {m.reaction && (
+                <div className="bubble">
+                  <b>{state.members.find((x) => x.id === m.reaction!.by)?.name}: {REACTIONS.find((r) => r.value === m.reaction!.kind)?.label}</b>{m.reaction.note && <> “{m.reaction.note}”</>}
+                  {m.reaction.reply ? <div className="reply">You: “{m.reaction.reply}”</div>
+                    : (m.reaction.kind === 'why' || m.reaction.kind === 'talk') && <div><button className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => { setReplyFor(m.id); setReply(''); }}>Answer</button></div>}
+                </div>
+              )}
+            </div>
             <div className={`pts ${m.kind === 'income' ? 'pos' : ''}`} style={{ fontSize: 20 }}>{m.kind === 'income' ? '+' : '−'}{money(m.amount, cur)}</div></li>
         ))}</ul> : <Empty icon="💵" text="Nothing yet." />}
       </div>
@@ -198,13 +227,22 @@ export function ChildMoney() {
           <div className="field"><label htmlFor="sc">Type</label><select id="sc" className="input" value={cat} onChange={(e) => setCat(e.target.value)}>{['Snacks', 'Toys', 'Books', 'Games', 'Stationery', 'Gifts', 'Other'].map((c) => <option key={c}>{c}</option>)}</select></div>
           <div className="field"><label>Did you need it or want it?</label><Seg label="Need or want" value={need ? 'need' : 'want'} onChange={(v) => setNeed(v === 'need')} options={[{ value: 'need', label: 'Needed it' }, { value: 'want', label: 'Wanted it' }]} /></div>
           <div className="field"><label htmlFor="sn">What was it?</label><input id="sn" className="input" value={note} onChange={(e) => setNote(e.target.value)} /></div>
-          <button className="btn btn-primary btn-block" onClick={() => { if (dispatch({ type: 'addMoney', actorId: me.id, entry: { id: uid('mn'), memberId: me.id, kind: 'expense', amount, category: cat, note, need, date: new Date().toISOString().slice(0, 10) } })) { toast('Saved'); setSheet(null); setNote(''); } }}>Save</button>
+          <div className="field"><label>How do you feel about it? <span className="muted">(required)</span></label><MoodPicker value={mood} onChange={setMood} label="How do you feel about it?" /></div>
+          <ProofInput id="sp-proof" label="Receipt or picture" required value={proof} onChange={setProof} />
+          <button className="btn btn-primary btn-block" disabled={!mood || !proof} onClick={() => { if (dispatch({ type: 'addMoney', actorId: me.id, entry: { id: uid('mn'), memberId: me.id, kind: 'expense', amount, category: cat, note, need, mood, proof, date: new Date().toISOString().slice(0, 10) } })) { toast('Saved'); setSheet(null); setNote(''); setMood(undefined); setProof(undefined); } }}>Save</button>
+          {(!mood || !proof) && <p className="small muted" style={{ marginBottom: 0 }}>Pick a feeling and add a receipt or picture to save.</p>}
+        </Sheet>
+      )}
+      {replyFor && (
+        <Sheet title="Answer your grown-up" onClose={() => setReplyFor(null)}>
+          <div className="field"><label htmlFor="rp">Your answer</label><textarea id="rp" className="input" maxLength={300} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="e.g. I shared it with my friends" /></div>
+          <button className="btn btn-primary btn-block" disabled={!reply.trim()} onClick={() => { if (dispatch({ type: 'replyMoney', entryId: replyFor, memberId: me.id, text: reply })) { toast('Sent!'); setReplyFor(null); } }}>Send</button>
         </Sheet>
       )}
       {sheet === 'save' && goals[0] && (
         <Sheet title={`Add to ${goals[0].name}`} onClose={() => setSheet(null)}>
           <div className="field"><label htmlFor="ga">How much ({cur})</label><input id="ga" className="input" type="number" min={0.5} step="0.5" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div>
-          <button className="btn btn-primary btn-block" onClick={() => { if (dispatch({ type: 'contribute', actorId: me.id, goalId: goals[0].id, amount })) { toast('Into the jar! 🐷'); setSheet(null); } }}>Add {money(amount || 0, cur)}</button>
+          <button className="btn btn-primary btn-block" onClick={() => { if (dispatch({ type: 'contribute', actorId: me.id, goalId: goals[0].id, amount })) { toast('Into the jar! 🫙'); setSheet(null); } }}>Add {money(amount || 0, cur)}</button>
         </Sheet>
       )}
       {sheet === 'goal' && (

@@ -4,14 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cycleKey } from './logic';
 import { seed } from './seed';
 import type {
-  Account, Assessment, DisputeStatus, Member, MoneyEntry, Rule, RuleKind, SavingsGoal, State, Transaction,
+  Account, Assessment, DisputeStatus, Member, MoneyEntry, MoodKind, Proof, ReactionKind, Rule, RuleKind, SavingsGoal, State, Transaction,
 } from './types';
 
 let counter = 0;
 export const uid = (p: string) => `${p}_${Date.now().toString(36)}${(counter++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export type Action =
-  | { type: 'award'; memberId: string; actorId: string; kind: RuleKind; points: number; category: string; description: string; ruleId?: string; at?: string }
+  | { type: 'award'; memberId: string; actorId: string; kind: RuleKind; points: number; category: string; description: string; ruleId?: string; at?: string; reason?: string; proof?: Proof }
   | { type: 'approveTx'; txId: string; actorId: string }
   | { type: 'rejectTx'; txId: string; actorId: string }
   | { type: 'reverse'; txId: string; actorId: string; reason: string; points?: number }
@@ -27,6 +27,9 @@ export type Action =
   | { type: 'contribute'; actorId: string; goalId: string; amount: number }
   | { type: 'addMoney'; actorId: string; entry: MoneyEntry }
   | { type: 'addAssessment'; actorId: string; assessment: Assessment }
+  | { type: 'reactMoney'; entryId: string; actorId: string; kind: ReactionKind; note?: string }
+  | { type: 'replyMoney'; entryId: string; memberId: string; text: string }
+  | { type: 'checkIn'; memberId: string; mood: MoodKind; note?: string; at?: string }
   | { type: 'readAll'; memberId: string }
   | { type: 'reset' }
   | { type: 'replace'; state: State };
@@ -54,6 +57,19 @@ const accountOf = (s: State, id: string) => {
   return a;
 };
 
+/** Whether merit awards in this account must carry proof. */
+export const activityProofRequired = (acct: Account) => acct.requireActivityProof ?? acct.mode === 'family';
+
+export function checkProof(p: Proof | undefined): p is Proof {
+  if (!p) return false;
+  if (p.kind === 'link') return /^https?:\/\/\S+\.\S+/i.test(p.url.trim());
+  return p.kind === 'photo' && p.url.startsWith('data:image/');
+}
+
+export const REACTION_TEXT: Record<ReactionKind, string> = {
+  great: '👍 Good choice', ok: '🙂 Okay', why: '🤔 Why so much?', talk: '💬 Let\'s talk about it',
+};
+
 const canManage = (actor: Member, target: Member) =>
   actor.accountId === target.accountId &&
   (actor.role === 'guardian' || actor.role === 'coguardian' || (actor.role === 'individual' && actor.id === target.id));
@@ -67,12 +83,17 @@ export function reduce(s: State, a: Action): State {
       if (!Number.isFinite(a.points) || a.points <= 0 || a.points > 100) throw new ActionError('Points must be between 1 and 100.');
       if (a.kind === 'demerit' && target.role === 'child' && !a.description.trim()) throw new ActionError('A deduction needs a reason the child can read.');
       const acct = accountOf(s, target.accountId);
+      const byOther = actor.id !== target.id;
+      if (a.kind === 'demerit' && byOther && (a.reason ?? '').trim().length < 5) throw new ActionError('Give a reason or justification for this deduction.');
+      if (a.proof && !checkProof(a.proof)) throw new ActionError('That proof link or photo is not valid.');
+      if (a.kind === 'merit' && byOther && activityProofRequired(acct) && !a.proof) throw new ActionError('Add a photo, receipt or link as proof.');
       const needsApproval = a.kind === 'demerit' && actor.role === 'coguardian' && a.points > acct.approvalThreshold;
       const at = a.at ?? nowIso();
       const tx: Transaction = {
         id: uid('tx'), accountId: acct.id, memberId: target.id, type: a.kind,
         points: a.kind === 'merit' ? a.points : -a.points, category: a.category, description: a.description.trim(),
         ruleId: a.ruleId, actorId: actor.id, status: needsApproval ? 'pending' : 'posted', createdAt: at, cycle: cycleKey(at),
+        ...(a.reason?.trim() ? { reason: a.reason.trim() } : {}), ...(a.proof ? { proof: a.proof } : {}),
       };
       let n: State = { ...s, transactions: [tx, ...s.transactions] };
       n = audit(n, acct.id, actor.id, needsApproval ? 'demerit.requested' : `${a.kind}.added`, 'transaction', tx.id, `${tx.points > 0 ? '+' : ''}${tx.points} ${target.name}: ${tx.description}`);
@@ -220,12 +241,45 @@ export function reduce(s: State, a: Action): State {
     }
     case 'addMoney': {
       if (!(a.entry.amount > 0)) throw new ActionError('Enter an amount above zero.');
+      if (a.entry.kind === 'expense') {
+        if (!checkProof(a.entry.proof)) throw new ActionError('Add a photo of the receipt or item, or a link, for every purchase.');
+        if (memberOf(s, a.entry.memberId).role === 'child' && !a.entry.mood) throw new ActionError('Pick how you feel about this purchase.');
+      }
       const n: State = { ...s, money: [a.entry, ...s.money] };
       return audit(n, memberOf(s, a.entry.memberId).accountId, a.actorId, `money.${a.entry.kind}`, 'money', a.entry.id, `${a.entry.amount} ${a.entry.category}`);
     }
     case 'addAssessment': {
       const n: State = { ...s, assessments: [a.assessment, ...s.assessments.filter((x) => !(x.memberId === a.assessment.memberId && x.month === a.assessment.month))] };
       return audit(n, memberOf(s, a.assessment.memberId).accountId, a.actorId, 'assessment.saved', 'assessment', a.assessment.id, a.assessment.month);
+    }
+    case 'reactMoney': {
+      const entry = s.money.find((m) => m.id === a.entryId);
+      if (!entry) throw new ActionError('Unknown purchase.');
+      const child = memberOf(s, entry.memberId);
+      const actor = memberOf(s, a.actorId);
+      if (!(actor.role === 'guardian' || actor.role === 'coguardian') || actor.accountId !== child.accountId) throw new ActionError('Only a guardian can react to purchases.');
+      if ((a.kind === 'why' || a.kind === 'talk') && a.note !== undefined && a.note.length > 300) throw new ActionError('Keep the note under 300 characters.');
+      const reaction = { kind: a.kind, note: a.note?.trim() || undefined, by: actor.id, at: nowIso() };
+      let n: State = { ...s, money: s.money.map((m) => (m.id === entry.id ? { ...m, reaction } : m)) };
+      n = audit(n, child.accountId, actor.id, 'money.reaction', 'money', entry.id, `${REACTION_TEXT[a.kind]} on ${entry.note || entry.category}`);
+      return notify(n, child.id, `${actor.name} on “${entry.note || entry.category}”: ${REACTION_TEXT[a.kind]}${reaction.note ? ` “${reaction.note}”` : ''}`);
+    }
+    case 'replyMoney': {
+      const entry = s.money.find((m) => m.id === a.entryId);
+      if (!entry || entry.memberId !== a.memberId || !entry.reaction) throw new ActionError('Nothing to answer here.');
+      if (!a.text.trim()) throw new ActionError('Write a short answer.');
+      const child = memberOf(s, a.memberId);
+      let n: State = { ...s, money: s.money.map((m) => (m.id === entry.id ? { ...m, reaction: { ...entry.reaction!, reply: a.text.trim(), replyAt: nowIso() } } : m)) };
+      n = audit(n, child.accountId, child.id, 'money.reply', 'money', entry.id, a.text.trim());
+      return notify(n, entry.reaction.by, `${child.name} answered about “${entry.note || entry.category}”: “${a.text.trim()}”`);
+    }
+    case 'checkIn': {
+      const m = memberOf(s, a.memberId);
+      const at = a.at ?? nowIso();
+      const day = at.slice(0, 10);
+      const rest = (s.moods ?? []).filter((x) => !(x.memberId === m.id && x.at.slice(0, 10) === day));
+      const n: State = { ...s, moods: [{ id: uid('md'), memberId: m.id, mood: a.mood, note: a.note?.trim() || undefined, at }, ...rest] };
+      return audit(n, m.accountId, m.id, 'mood.checkin', 'member', m.id, a.mood);
     }
     case 'readAll':
       return { ...s, notifications: s.notifications.map((x) => (x.memberId === a.memberId ? { ...x, read: true } : x)) };
